@@ -1,198 +1,351 @@
-# README — TremorAnalyzer (Sistema Clínico de Análise de Tremor por Acelerometria)
+# TremorPSD: Plataforma Avançada de Análise de Tremor
 
-## 1) Visão geral
+Uma aplicação web abrangente para análise de tremor em tempo real usando acelerometria de smartphones e técnicas avançadas de processamento de sinais. O TremorPSD implementa métodos de análise espectral clinicamente relevantes para caracterizar distúrbios do movimento através de métricas objetivas e quantitativas.
 
-O **TremorAnalyzer** é um aplicativo web de uso clínico-auxiliar que registra aceleração tri-axial via `DeviceMotion` em smartphones/tablets e executa uma **análise espectral padronizada** para quantificar tremor e oferecer **classificação diferencial heurística** (tremor essencial, parkinsoniano, distônico, ortostático e mioclonia).
-Foi concebido para consulta ambulatorial ou beira-leito, com duração de teste breve (20–60 s) e exportação imediata dos resultados.
+## Visão Geral
 
-> **Importante:** trata-se de **ferramenta de apoio**. A decisão diagnóstica permanece clínica, integrando exame neurológico e, se necessário, exames complementares.
+O TremorPSD aproveita os sensores acelerômetros disponíveis em smartphones modernos para realizar análise de tremor de nível profissional. A plataforma emprega metodologias de processamento de sinais estabelecidas, comumente utilizadas em pesquisa clínica e avaliação de distúrbios do movimento, fornecendo pipelines de análise transparentes e reproduzíveis.
 
----
+## Características Principais
 
-## 2) Requisitos e suporte
+### Pipeline de Processamento de Sinais
 
-* **Navegador**: Safari iOS 13+, Chrome/Edge/Firefox Android/desktop com suporte a `DeviceMotion`.
-* **Conexão**: **HTTPS** (obrigatório no iOS) ou `localhost`.
-* **Permissão iOS**: é necessário tocar em “**Ativar Sensores**” para conceder acesso ao acelerômetro.
+**Filtragem Digital**
+- Filtros IIR passa-faixa configuráveis (Butterworth de 1ª ordem)
+- Banda diagnóstica padrão: 3-20 Hz (ajustável)
+- Remoção de componente DC e detrending em tempo real
+- Implementação causal adequada para análise em tempo real
 
----
+**Análise Espectral**
+- Método de Welch para estimativa de densidade espectral de potência (PSD)
+- Janelamento Hanning com normalização adequada
+- Parâmetros configuráveis de comprimento de segmento e sobreposição
+- Implementação recursiva de FFT (algoritmo Cooley-Tukey)
 
-## 3) Fluxo de uso (passo a passo)
+### Métricas Clínicas
 
-1. **Acesso seguro**: abra a página via HTTPS.
-2. **Ativar sensores** (iOS) quando solicitado. O sistema valida taxa de amostragem e exibe *status*.
-3. **Selecione o protocolo**: repouso, postural, cinético ou ortostático.
-4. **Defina o componente do sinal**: magnitude (√x²+y²+z²), eixo dominante, ou eixos X/Y/Z.
-5. **Informe a duração** (padrão 30 s; recomendado 20–60 s).
-6. **Iniciar coleta** → manter a posição/ tarefa conforme instruções na tela.
-7. **Análise automática** → exibição de métricas, espectros (PSD) e **classificação diferencial**.
-8. **Exportar**: CSV (séries temporais), JSON (dataset completo) e Relatório TXT (sumário clínico).
+A plataforma computa métricas estabelecidas de caracterização de tremor:
 
----
+- **Frequência de Pico**: Frequência dominante na banda diagnóstica (Hz)
+- **FWHM**: Largura à meia altura do pico espectral (Hz)
+- **Entropia Espectral**: Medida de conteúdo de informação (-∑ pᵢ log₂ pᵢ)
+- **Razão Pico/Total (PTR)**: Métrica de concentração de potência
+- **Índice de Estabilidade do Tremor (TSI)**: Medida de estabilidade do pico (FWHM/f_pico)
+- **Centroide Espectral**: Centro de potência ponderado por frequência (Hz)
 
-## 4) Metodologia de processamento de sinais
+### Classificação Diferencial
 
-A pipeline é intencionalmente **transparente e rastreável**:
+Sistema de classificação baseado em regras suportando:
+- **Tremor Ortostático** (13-18 Hz, alta coerência)
+- **Tremor Essencial** (4-12 Hz, seletividade moderada)
+- **Tremor Distônico** (4-7 Hz, espectro irregular)
+- **Mioclonia** (espectro amplo, alta entropia)
 
-1. **Aquisição**
+O algoritmo de classificação fornece raciocínio explicável e pontuações de confiança baseadas em múltiplas características espectrais.
 
-   * Aceleração tri-axial bruta (g).
-   * Estimativa contínua da **taxa de amostragem** (Hz) a partir do intervalo entre eventos.
-   * Seleção do componente: magnitude, eixo dominante ou eixos X/Y/Z.
+## Especificações Técnicas
 
-2. **Pré-processamento**
+### Aquisição de Dados
+- **Taxa de Amostragem**: Adaptativa (tipicamente 50-100 Hz)
+- **Resolução**: Precisão do acelerômetro dependente do dispositivo
+- **Eixos**: X, Y, Z, magnitude ou eixo dominante auto-detectado
+- **Duração**: Configurável (10-60 segundos)
 
-   * **Remoção do componente DC** (detrend simples por subtração da média).
-   * **Filtragem passa-faixa 3–20 Hz** (cadeia passa-alta + passa-baixa de 1ª ordem, implementação causal simplificada).
+### Parâmetros de Processamento
+- **Comprimento do Segmento**: 2-8 segundos (padrão: 4s)
+- **Sobreposição**: 0-75% (padrão: 50%)
+- **Cortes do Filtro**: Limites passa-faixa configuráveis
+- **Função de Janela**: Hanning (von Hann)
 
-     * Notação: `lowCut = 3 Hz`, `highCut = 20 Hz`; normalização em relação a Nyquist.
+### Formatos de Saída
+- **Exportação CSV**: Dados de séries temporais (brutos e filtrados)
+- **Relatório Técnico**: Resumo abrangente da análise
+- **Visualização em Tempo Real**: Gráficos no domínio do tempo e frequência
 
-3. **Espectro (Welch PSD)**
+## Aplicações Clínicas
 
-   * **Janela de Hanning** e **método de Welch** com:
+O TremorPSD é projetado para:
+- Pesquisa em distúrbios do movimento
+- Quantificação objetiva de tremor
+- Demonstrações educacionais
+- Triagem em telemedicina
+- Estudos de monitoramento longitudinal
 
-     * **tamanho de segmento** = `4 s × fs` (arredondado),
-     * **sobreposição** = 50%,
-     * **PSD** = |FFT|² / (fs × Nsegmento), média entre segmentos.
-   * **Frequência de interesse**: 0–30 Hz (plot) e **banda diagnóstica** primária 3–20 Hz.
-   * Implementação educacional de FFT/DFT (suficiente para durações curtas). Em produção, recomenda-se FFT otimizada (p.ex., Cooley–Tukey).
+## Transparência Metodológica
 
----
+A plataforma enfatiza práticas de pesquisa reproduzíveis:
+- **Algoritmos Abertos**: Todos os passos de processamento são documentados e acessíveis
+- **Rastreabilidade de Parâmetros**: Log completo de parâmetros nos relatórios
+- **Métricas Padronizadas**: Implementação segue literatura estabelecida
+- **Garantia de Qualidade**: Avaliação integrada de qualidade do sinal
 
-## 5) Métricas extraídas (definições)
+## Requisitos de Uso
 
-Após o cálculo do PSD médio (Welch), são computadas:
+### Pré-requisitos Técnicos
+- **Contexto HTTPS**: Necessário para acesso aos sensores
+- **Navegador Moderno**: Suporte para API DeviceMotionEvent
+- **Dispositivo Móvel**: Sensores acelerômetros integrados
+- **Permissões**: Aprovação para acesso aos sensores de movimento
 
-* **Frequência de pico (Hz)**: `f_peak = argmax(PSD(f))` na **banda 3–20 Hz**.
-* **Potência no pico**: `PSD(f_peak)`.
-* **FWHM (Hz)**: largura à meia altura do pico principal (half-maximum).
-* **Entropia espectral**: `H = −∑ pᵢ log₂ pᵢ`, com `pᵢ = PSD(fᵢ) / ∑ PSD`.
-* **Razão pico/total (PTR)**: `PTR = PSD(f_peak) / ∑ PSD`.
-* **Índice de estabilidade do tremor (TSI)** (aproximação): `TSI ≈ FWHM / f_peak` (quanto menor, **pico mais estável/estreito**).
-* **Centroide espectral (Hz)**: `∑ fᵢ·PSD(fᵢ) / ∑ PSD(fᵢ)`.
+### Instalação
+```bash
+# Clonar repositório
+git clone https://github.com/username/tremor-psd.git
 
-Essas métricas refletem **frequência, seletividade, concentração de potência** e **irregularidade** do espectro.
+# Servir via HTTPS (necessário para acesso aos sensores)
+# Opção 1: GitHub Pages
+# Opção 2: Deploy Netlify/Vercel
+# Opção 3: Servidor HTTPS local
+```
 
----
+### Início Rápido
+1. Acessar aplicação via URL HTTPS
+2. Conceder permissões dos sensores de movimento
+3. Configurar parâmetros de análise
+4. Posicionar dispositivo conforme instruído
+5. Iniciar coleta de dados
+6. Revisar resultados e exportar dados
 
-## 6) Classificação diferencial (heurística explicável)
+## Validação e Limitações
 
-A classificação é **regra-baseada**, utiliza `f_peak`, **FWHM**, **PTR**, **TSI** e **entropia**, ponderando o **protocolo executado**:
+### Status de Validação
+- **Verificação de Algoritmos**: Comparado com implementações de referência
+- **Teste com Dados Sintéticos**: Validado com características conhecidas de sinal
+- **Correlação Clínica**: Requer validação contra métodos padrão-ouro
 
-* **Tremor Essencial (TE)**:
+### Limitações Importantes
+- **Propósito Educacional**: Não aprovado para diagnóstico clínico
+- **Variabilidade de Dispositivos**: Resultados podem variar entre diferentes hardwares
+- **Fatores Ambientais**: Sensível à montagem do dispositivo e vibrações externas
+- **Irregularidades de Amostragem**: Sensores móveis podem ter temporização variável
 
-  * `4–12 Hz`, geralmente **postural/cinético**; picos mais estreitos; PTR moderado/alto.
-* **Tremor Parkinsoniano (DP)**:
+## Fundamentação Científica
 
-  * `3–6 Hz`, **repouso**; TSI **baixo** (pico estável).
-* **Tremor Distônico (DT)**:
+### Abordagem de Análise Espectral
+A plataforma implementa o método de Welch como padrão-ouro para estimativa de PSD de sinais biológicos. Esta abordagem oferece:
+- **Redução de Variância**: Média entre segmentos reduz ruído
+- **Resolução de Frequência**: Balanceada com confiabilidade estatística
+- **Eficiência Computacional**: Adequada para implementação em tempo real
 
-  * `3–7 Hz`, espectro **mais largo** (FWHM ↑), entropia ↑, TSI ↑.
-* **Tremor Ortostático (OT)**:
+### Seleção de Métricas
+As métricas escolhidas refletem literatura estabelecida de pesquisa em tremor:
+- **Frequência de Pico**: Critério diagnóstico primário
+- **Largura Espectral**: Indica regularidade do ritmo
+- **Distribuição de Potência**: Caracteriza organização do sinal
+- **Medidas de Entropia**: Quantificam complexidade do sinal
 
-  * `13–18 Hz`, protocolo **ortostático**; PTR ↑.
-* **Mioclonia**:
+## Contribuições
 
-  * Alta **irregularidade** (entropia ↑) e **largura** (FWHM ↑), TSI ↑; distribuição difusa de potência.
+Acolhemos contribuições em:
+- Melhorias de algoritmos
+- Estudos de validação clínica
+- Aprimoramentos da interface do usuário
+- Melhorias na documentação
+- Relatórios de bugs e solicitações de recursos
 
-> **Saída**: percentuais normalizados por classe e **rótulo mais provável**. A explicação clínica de cada caso é mostrada abaixo das barras.
+## Citação
 
----
+Se usar o TremorPSD em pesquisa, por favor cite:
+```
+TremorPSD: Plataforma Avançada de Análise de Tremor
+Disponível em: https://github.com/pedrobrandao-neurologia/tremor-psd
+```
 
-## 7) Indicadores de qualidade do sinal
+## Licença
 
-Durante a inicialização e coleta são mostrados:
+Este projeto está licenciado sob a Licença MIT - veja o arquivo LICENSE para detalhes.
 
-* **Taxa de amostragem (Hz)** estimada.
-* **Amostras** recebidas.
-* **Qualidade**: *Excelente* (≥100 Hz), *Boa* (≥50 Hz), *Baixa* (<50 Hz).
-  Taxas mais altas melhoram a resolução espectral e a robustez do pico.
+## Aviso Legal
 
----
+**Importante Aviso Médico**: O TremorPSD é destinado apenas para fins educacionais e de pesquisa. Não é um dispositivo médico e não deve ser usado para diagnóstico clínico ou decisões de tratamento. Sempre consulte profissionais de saúde qualificados para aconselhamento médico e diagnóstico de distúrbios do movimento.
 
-## 8) Protocolos e boas práticas de coleta
+## Suporte
 
-* **Repouso**: paciente sentado, antebraços apoiados, mãos relaxadas no colo; fixar o dispositivo no dorso da mão mais afetada.
-* **Postural**: braços estendidos horizontalmente, mãos em pronação; evitar compensações proximais.
-* **Cinético**: dedo-nariz-dedo contínuo, amplitude confortável; dispositivo na mão em movimento.
-* **Ortostático**: em pé, braços relaxados; fixar em coxa/tornozelo (vibratilidade de 13–18 Hz).
-* **Duração**: 20–60 s; **evitar fala** e **movimentos voluntários** durante a janela.
-* **Fixação** do aparelho: firme e reprodutível; anotar lado/teste.
-
----
-
-## 9) Visualizações
-
-* **Sinal temporal** (aceleração filtrada): inspeção qualitativa de regularidade.
-* **PSD (0–30 Hz)** com **marcação do pico** e rótulo de frequência: facilita leitura imediata.
-
----
-
-## 10) Exportação de dados
-
-* **CSV**: tempo (s), aceleração bruta (g) e filtrada (g).
-* **JSON**: metadados (protocolo, taxa, duração), série temporal, dado filtrado, PSD, métricas e classificação.
-* **Relatório TXT**: sumário clínico com métricas, percentuais por classe e interpretação padrão.
-
----
-
-## 11) Limitações e considerações clínicas
-
-* **Heurístico**: não é modelo treinado supervisionado; privilegia **interpretabilidade** à custa de acurácia de ML de última geração.
-* **Taxa de amostragem variável** no navegador: pode limitar resolução e estabilidade espectral em alguns dispositivos.
-* **Ambiente**: vibrações externas, postura inadequada e fixação frouxa degradam o resultado.
-* **Mioclonia**: aceleração pode sub-representar *jerks* curtíssimos; EMG/superfícies adicionais podem ser necessários.
-* **Uso regulatório**: ferramenta de **apoio**; não substitui diagnóstico médico.
-
----
-
-## 12) Segurança, privacidade e PWA
-
-* Funciona localmente no navegador; **sem envio automático de dados** a servidores.
-* O **Service Worker** habilita uso básico offline (página e scripts).
-* Ao exportar, os arquivos são gerados **no cliente** (download).
-* Se for integrar a um RES/Prontuário, respeitar políticas institucionais, consentimento e criptografia de transporte/armazenamento.
-
----
-
-## 13) Parâmetros (resumo rápido)
-
-* **Banda de análise**: 3–20 Hz (filtros) | **Plot**: até 30 Hz.
-* **Welch**: janela de 4 s, 50% sobreposição, janela de Hanning.
-* **Métricas**: f\_peak, PSD\_peak, FWHM, PTR, entropia, TSI, centroide.
-* **Classificação**: regras por faixa de frequência + forma espectral + protocolo.
-
----
-
-## 14) Resolução de problemas (FAQ)
-
-* **“Taxa insuficiente”**: use HTTPS/`localhost`; troque de navegador; feche apps em segundo plano; tente outro aparelho.
-* **iOS não inicia**: toque em **Ativar Sensores**; verifique se a página está em HTTPS.
-* **Gráfico “chato”/sem pico**: duração curta ou fixação ruim; repita por 30–60 s; confira se o protocolo está adequado ao fenótipo esperado.
-* **Pico fora da banda**: revise tarefas (p.ex., ortostático pode ultrapassar 20 Hz — o plot mostra até 30 Hz).
+Para suporte técnico, dúvidas ou consultas de colaboração:
+- **Issues**: Rastreador de Issues do GitHub
+- **Documentação**: Páginas da Wiki
+- **Contato**: pedrobrandao.neurologia@gmail.com
 
 ---
 
-## 15) Roadmap (opcional)
+**Versão**: 2.0  
+**Última Atualização**: 2024  
+**Plataforma**: Baseada na web (HTML5/JavaScript)  
+**Dependências**: Nenhuma (implementação autônoma)
 
-* FFT otimizada (radix-2) e janelamento multitaper.
-* Estimadores de frequência instantânea e TSI robusto (ex.: picos harmônicos / estabilidade por janelas).
-* Coerência entre segmentos corporais (duplo sensor).
-* Módulos de ML explicáveis (e.g., XGBoost/CNN1D) com validação externa.
+
+# TremorPSD: Advanced Tremor Analysis Platform
+
+A comprehensive web-based application for real-time tremor analysis using smartphone accelerometry and advanced signal processing techniques. TremorPSD implements clinically-relevant spectral analysis methods to characterize movement disorders through objective, quantitative metrics.
+
+## Overview
+
+TremorPSD leverages the accelerometer sensors available in modern smartphones to perform professional-grade tremor analysis. The platform employs established signal processing methodologies commonly used in clinical research and movement disorder assessment, providing transparent and reproducible analysis pipelines.
+
+## Key Features
+
+### Signal Processing Pipeline
+
+**Digital Filtering**
+- Configurable IIR bandpass filters (1st order Butterworth)
+- Default diagnostic band: 3-20 Hz (adjustable)
+- Real-time detrending and DC component removal
+- Causal implementation suitable for real-time analysis
+
+**Spectral Analysis**
+- Welch's method for power spectral density (PSD) estimation
+- Hanning windowing with proper normalization
+- Configurable segment length and overlap parameters
+- Recursive FFT implementation (Cooley-Tukey algorithm)
+
+### Clinical Metrics
+
+The platform computes established tremor characterization metrics:
+
+- **Peak Frequency**: Dominant frequency in diagnostic band (Hz)
+- **FWHM**: Full Width at Half Maximum of spectral peak (Hz)
+- **Spectral Entropy**: Information content measure (-∑ pᵢ log₂ pᵢ)
+- **Peak-to-Total Ratio (PTR)**: Power concentration metric
+- **Tremor Stability Index (TSI)**: Peak stability measure (FWHM/f_peak)
+- **Spectral Centroid**: Frequency-weighted power center (Hz)
+
+### Differential Classification
+
+Rule-based classification system supporting:
+- **Orthostatic Tremor** (13-18 Hz, high coherence)
+- **Essential Tremor** (4-12 Hz, moderate selectivity)
+- **Dystonic Tremor** (4-7 Hz, irregular spectrum)
+- **Myoclonus** (broad spectrum, high entropy)
+
+The classification algorithm provides explainable reasoning and confidence scores based on multiple spectral characteristics.
+
+## Technical Specifications
+
+### Data Acquisition
+- **Sampling Rate**: Adaptive (typically 50-100 Hz)
+- **Resolution**: Device-dependent accelerometer precision
+- **Axes**: X, Y, Z, magnitude, or auto-detected dominant axis
+- **Duration**: Configurable (10-60 seconds)
+
+### Processing Parameters
+- **Segment Length**: 2-8 seconds (default: 4s)
+- **Overlap**: 0-75% (default: 50%)
+- **Filter Cutoffs**: Configurable bandpass limits
+- **Window Function**: Hanning (von Hann)
+
+### Output Formats
+- **CSV Export**: Time series data (raw and filtered)
+- **Technical Report**: Comprehensive analysis summary
+- **Real-time Visualization**: Time domain and frequency domain plots
+
+## Clinical Applications
+
+TremorPSD is designed for:
+- Movement disorder research
+- Objective tremor quantification
+- Educational demonstrations
+- Telemedicine screening
+- Longitudinal monitoring studies
+
+## Methodological Transparency
+
+The platform emphasizes reproducible research practices:
+- **Open Algorithms**: All processing steps are documented and accessible
+- **Parameter Traceability**: Complete parameter logging in reports
+- **Standardized Metrics**: Implementation follows established literature
+- **Quality Assurance**: Built-in signal quality assessment
+
+## Usage Requirements
+
+### Technical Prerequisites
+- **HTTPS Context**: Required for sensor access
+- **Modern Browser**: Support for DeviceMotionEvent API
+- **Mobile Device**: Built-in accelerometer sensors
+- **Permissions**: Motion sensor access approval
+
+### Installation
+```bash
+# Clone repository
+git clone https://github.com/username/tremor-psd.git
+
+# Serve via HTTPS (required for sensor access)
+# Option 1: GitHub Pages
+# Option 2: Netlify/Vercel deployment
+# Option 3: Local HTTPS server
+```
+
+### Quick Start
+1. Access application via HTTPS URL
+2. Grant motion sensor permissions
+3. Configure analysis parameters
+4. Position device as instructed
+5. Initiate data collection
+6. Review results and export data
+
+## Validation and Limitations
+
+### Validation Status
+- **Algorithm Verification**: Compared against reference implementations
+- **Synthetic Data Testing**: Validated with known signal characteristics
+- **Clinical Correlation**: Requires validation against gold standard methods
+
+### Important Limitations
+- **Educational Purpose**: Not approved for clinical diagnosis
+- **Device Variability**: Results may vary across different hardware
+- **Environmental Factors**: Sensitive to device mounting and external vibrations
+- **Sampling Irregularities**: Mobile sensors may have variable timing
+
+## Scientific Rationale
+
+### Spectral Analysis Approach
+The platform implements Welch's method as the gold standard for biological signal PSD estimation. This approach provides:
+- **Variance Reduction**: Averaging across segments reduces noise
+- **Frequency Resolution**: Balanced with statistical reliability
+- **Computational Efficiency**: Suitable for real-time implementation
+
+### Metric Selection
+Chosen metrics reflect established tremor research literature:
+- **Peak Frequency**: Primary diagnostic criterion
+- **Spectral Width**: Indicates rhythm regularity
+- **Power Distribution**: Characterizes signal organization
+- **Entropy Measures**: Quantify signal complexity
+
+## Contributing
+
+We welcome contributions in:
+- Algorithm improvements
+- Clinical validation studies
+- User interface enhancements
+- Documentation improvements
+- Bug reports and feature requests
+
+## Citation
+
+If you use TremorPSD in research, please cite:
+```
+TremorPSD: Advanced Tremor Analysis Platform
+[Authors], [Year]
+Available at: https://github.com/username/tremor-psd
+```
+
+## License
+
+This project is licensed under the MIT License - see LICENSE file for details.
+
+## Disclaimer
+
+**Important Medical Disclaimer**: TremorPSD is intended for educational and research purposes only. It is not a medical device and should not be used for clinical diagnosis or treatment decisions. Always consult qualified healthcare professionals for medical advice and diagnosis of movement disorders.
+
+## Support
+
+For technical support, questions, or collaboration inquiries:
+- **Issues**: GitHub Issues tracker
+- **Documentation**: Wiki pages
+- **Contact**: [maintainer-email]
 
 ---
 
-## 16) Referências essenciais (curtas)
-
-* Deuschl G, et al. *Mov Disord*. 1998 (consenso tremor).
-* Elble RJ, et al. *Brain*. 2006 (escala × amplitude).
-* Barrantes S, et al. *PLoS One*. 2017 (smartphone para TE vs DP).
-* Bove M, et al. *Sensors*. 2023 (classificação multi-classe com wearables).
-
----
-
-### Declaração final
-
-O **TremorAnalyzer** busca **padronizar** a captura e a leitura espectral do tremor, fornecendo métricas objetivas, 
-visualizações claras e uma **heurística clínica transparente**. 
-A interpretação deve ser integrada ao **exame neurológico** e ao **contexto do paciente**.
+**Version**: 2.0  
+**Last Updated**: 2024  
+**Platform**: Web-based (HTML5/JavaScript)  
+**Dependencies**: None (standalone implementation)
