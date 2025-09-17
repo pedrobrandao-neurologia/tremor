@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"/>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>TremorPSD - Análise de Tremor</title>
+  <meta name="description" content="TremorPSD: Análise de tremor por acelerometria diretamente no navegador, com visualização temporal e espectral (PSD).">
+  <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-title" content="TremorPSD">
+  <link rel="manifest" href="manifest.webmanifest">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --primary: #007AFF;
+      --success: #34C759;
+      --warning: #FF9500;
+      --danger: #FF3B30;
+      --bg: #000000;
+      --surface: #1C1C1E;
+      --surface2: #2C2C2E;
+      --text: #FFFFFF;
+      --text-secondary: #8E8E93;
+      --border: #38383A;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+      position: relative;
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+    }
+    
+    /* Splash Screen / Onboarding */
+    .onboarding {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      transition: opacity 0.5s, transform 0.5s;
+      padding: 20px;
+    }
+    
+    .onboarding.hidden {
+      opacity: 0;
+      transform: scale(1.1);
+      pointer-events: none;
+    }
+    
+    .onboarding-icon {
+      width: 120px;
+      height: 120px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 30px;
+      backdrop-filter: blur(10px);
+    }
+    
+    .onboarding-icon svg {
+      width: 70px;
+      height: 70px;
+      fill: white;
+    }
+    
+    .onboarding h1 {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+    
+    .onboarding p {
+      font-size: 18px;
+      opacity: 0.9;
+      text-align: center;
+      margin-bottom: 40px;
+      max-width: 300px;
+      line-height: 1.4;
+    }
+    
+    .onboarding-btn {
+      background: white;
+      color: #667eea;
+      border: none;
+      padding: 18px 60px;
+      border-radius: 30px;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    
+    .onboarding-btn:active {
+      transform: scale(0.95);
+    }
+    
+    .onboarding-steps {
+      position: absolute;
+      bottom: 40px;
+      display: flex;
+      gap: 8px;
+    }
+    
+    .step-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.3);
+      transition: all 0.3s;
+    }
+    
+    .step-dot.active {
+      background: white;
+      width: 24px;
+      border-radius: 4px;
+    }
+    
+    /* Main App */
+    .app-header {
+      background: var(--surface);
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+    
+    .app-title {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+    
+    .app-subtitle {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+    
+    .content {
+      padding: 20px;
+      padding-bottom: 100px;
+    }
+    
+    /* Status Card */
+    .status-card {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .status-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: var(--primary);
+      transition: background 0.3s;
+    }
+    
+    .status-card.ready::before { background: var(--success); }
+    .status-card.collecting::before { background: var(--warning); }
+    .status-card.error::before { background: var(--danger); }
+    
+    .status-icon {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: var(--surface2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 15px;
+      position: relative;
+    }
+    
+    .status-icon.pulse {
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.8; }
+    }
+    
+    .status-text {
+      text-align: center;
+      font-size: 16px;
+      margin-bottom: 5px;
+    }
+    
+    .status-detail {
+      text-align: center;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+    
+    /* Control Panel */
+    .control-panel {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .control-group {
+      margin-bottom: 20px;
+    }
+    
+    .control-label {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      display: block;
+    }
+    
+    .control-input {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-size: 16px;
+      -webkit-appearance: none;
+    }
+    
+    .control-select {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-size: 16px;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238E8E93' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 16px center;
+      padding-right: 40px;
+    }
+    
+    /* Action Button */
+    .action-btn {
+      width: 100%;
+      padding: 18px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 14px;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .action-btn:active {
+      transform: scale(0.98);
+    }
+    
+    .action-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .action-btn.collecting {
+      background: var(--warning);
+    }
+    
+    .action-btn.success {
+      background: var(--success);
+    }
+    
+    .action-btn-progress {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 4px;
+      background: rgba(255,255,255,0.3);
+      transition: width linear;
+    }
+    
+    /* Results Section */
+    .results {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .results-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 15px;
+    }
+    
+    .chart-container {
+      width: 100%;
+      height: 200px;
+      background: var(--surface2);
+      border-radius: 12px;
+      margin-bottom: 15px;
+      position: relative;
+    }
+    
+    canvas {
+      width: 100%;
+      height: 100%;
+      border-radius: 12px;
+    }
+    
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 15px;
+    }
+    
+    .metric-card {
+      background: var(--surface2);
+      padding: 12px;
+      border-radius: 12px;
+    }
+    
+    .metric-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+    
+    .metric-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    
+    /* Classification */
+    .classification {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .classification-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    
+    .classification-label {
+      flex: 0 0 100px;
+      font-size: 14px;
+    }
+    
+    .classification-bar {
+      flex: 1;
+      height: 8px;
+      background: var(--surface2);
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 0 10px;
+    }
+    
+    .classification-fill {
+      height: 100%;
+      background: var(--primary);
+      transition: width 0.5s ease;
+      border-radius: 4px;
+    }
+    
+    .classification-percent {
+      flex: 0 0 50px;
+      text-align: right;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    
+    /* Footer Actions */
+    .footer-actions {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 15px 20px;
+      padding-bottom: calc(15px + env(safe-area-inset-bottom));
+      display: flex;
+      gap: 10px;
+    }
+    
+    .footer-btn {
+      flex: 1;
+      padding: 12px;
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    
+    /* Loading Spinner */
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--surface2);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Respect reduced motion preferences */
+    @media (prefers-reduced-motion: reduce) {
+      .status-icon.pulse, .onboarding, .onboarding-btn, .action-btn, .spinner {
+        animation: none !important;
+        transition: none !important;
+      }
+      .action-btn:active { transform: none !important; }
+    }
+    
+    /* Responsive */
+    @media (max-width: 375px) {
+      .app-title { font-size: 20px; }
+      .metrics-grid { grid-template-columns: 1fr; }
+    }
+    
+    /* Hidden class */
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <!-- Onboarding Screen -->
+  <div class="onboarding" id="onboarding">
+    <div class="onboarding-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M13.5,5.5C14.59,5.5 15.5,4.58 15.5,3.5C15.5,2.38 14.59,1.5 13.5,1.5C12.39,1.5 11.5,2.38 11.5,3.5C11.5,4.58 12.39,5.5 13.5,5.5M9.89,19.38L10.89,15L13,17V23H15V15.5L12.89,13.5L13.5,10.5C14.79,12 16.79,13 19,13V11C17.09,11 15.5,10 14.69,8.58L13.69,7C13.29,6.38 12.69,6 12,6C11.69,6 11.5,6.08 11.19,6.08L6,8.28V13H8V9.58L9.79,8.88L8.19,17L3.29,16L2.89,18L9.89,19.38Z"/>
+      </svg>
+    </div>
+    <h1>TremorPSD</h1>
+    <p>Análise profissional de tremor usando o acelerômetro do seu dispositivo</p>
+    <button class="onboarding-btn" onclick="startOnboarding()">Começar Análise</button>
+    <div class="onboarding-steps">
+      <span class="step-dot active"></span>
+      <span class="step-dot"></span>
+      <span class="step-dot"></span>
+    </div>
+  </div>
+  
+  <!-- Main App -->
+  <div class="app-header">
+    <div class="app-title">TremorPSD</div>
+    <div class="app-subtitle">Análise de Tremor por Acelerometria</div>
+  </div>
+  
+  <div class="content">
+    <!-- Status Card -->
+    <div class="status-card" id="statusCard" role="status" aria-live="polite" aria-atomic="true" aria-busy="false">
+      <div class="status-icon" id="statusIcon">
+        <div class="spinner" id="spinner"></div>
+        <svg id="iconReady" class="hidden" width="30" height="30" viewBox="0 0 24 24" fill="var(--success)">
+          <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+        </svg>
+      </div>
+      <div class="status-text" id="statusText">Preparando sensores...</div>
+      <div class="status-detail" id="statusDetail">Aguarde um momento</div>
+    </div>
+    
+    <!-- Control Panel -->
+    <div class="control-panel">
+      <div class="control-group">
+        <label class="control-label" for="duration">Duração da coleta (segundos)</label>
+        <input type="number" class="control-input" id="duration" value="20" min="10" max="60" step="1" inputmode="numeric" autocomplete="off">
+      </div>
+      
+      <div class="control-group">
+        <label class="control-label" for="axis">Componente do sinal</label>
+        <select class="control-select" id="axis">
+          <option value="mag">Magnitude total (√x²+y²+z²)</option>
+          <option value="x">Apenas eixo X</option>
+          <option value="y">Apenas eixo Y</option>
+          <option value="z">Apenas eixo Z</option>
+        </select>
+      </div>
+      
+      <button class="action-btn" id="actionBtn" onclick="handleAction()" disabled>
+        <span id="actionText">Preparando...</span>
+        <div class="action-btn-progress" id="progressBar"></div>
+      </button>
+    </div>
+    
+    <!-- Results Section (Initially Hidden) -->
+    <div class="results hidden" id="resultsSection">
+      <div class="results-title">Análise Espectral</div>
+      
+      <div class="chart-container">
+        <canvas id="chartTime" role="img" aria-label="Gráfico do sinal temporal do acelerômetro"></canvas>
+      </div>
+      
+      <div class="chart-container">
+        <canvas id="chartPSD" role="img" aria-label="Gráfico do espectro de frequência (PSD)"></canvas>
+      </div>
+      
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-label">Frequência do pico</div>
+          <div class="metric-value" id="metricFreq">—</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Proeminência</div>
+          <div class="metric-value" id="metricProm">—</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Largura (Hz)</div>
+          <div class="metric-value" id="metricWidth">—</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Taxa (Hz)</div>
+          <div class="metric-value" id="metricRate">—</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Classification (Initially Hidden) -->
+    <div class="classification hidden" id="classificationSection">
+      <div class="results-title">Classificação Sugerida</div>
+      
+      <div class="classification-item">
+        <span class="classification-label">Ortostático</span>
+        <div class="classification-bar">
+          <div class="classification-fill" id="barOT" style="width: 0%" role="progressbar" aria-label="Probabilidade de tremor ortostático" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+        </div>
+        <span class="classification-percent" id="pctOT">0%</span>
+      </div>
+      
+      <div class="classification-item">
+        <span class="classification-label">Essencial</span>
+        <div class="classification-bar">
+          <div class="classification-fill" id="barET" style="width: 0%" role="progressbar" aria-label="Probabilidade de tremor essencial" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+        </div>
+        <span class="classification-percent" id="pctET">0%</span>
+      </div>
+      
+      <div class="classification-item">
+        <span class="classification-label">Distônico</span>
+        <div class="classification-bar">
+          <div class="classification-fill" id="barDT" style="width: 0%" role="progressbar" aria-label="Probabilidade de tremor distônico" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+        </div>
+        <span class="classification-percent" id="pctDT">0%</span>
+      </div>
+      
+      <div class="classification-item">
+        <span class="classification-label">Mioclonia</span>
+        <div class="classification-bar">
+          <div class="classification-fill" id="barMY" style="width: 0%" role="progressbar" aria-label="Probabilidade de mioclonia" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+        </div>
+        <span class="classification-percent" id="pctMY">0%</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Footer Actions -->
+  <div class="footer-actions hidden" id="footerActions" role="group" aria-label="Ações">
+    <button class="footer-btn" onclick="exportData()" aria-label="Exportar dados em CSV">Exportar CSV</button>
+    <button class="footer-btn" onclick="exportPSD()" aria-label="Exportar espectro em CSV">Exportar PSD</button>
+    <button class="footer-btn" onclick="resetApp()" aria-label="Iniciar nova análise">Nova Análise</button>
+  </div>
+
+<script>
+// Global state
+let state = {
+  onboarded: false,
+  sensorReady: false,
+  collecting: false,
+  data: [],
+  results: null,
+  mode: 'mag',
+  startTime: null,
+  sampleRate: 0,
+  eventCount: 0,
+  motionHandler: null
+};
+
+// Check for HTTPS or secure context
+function isSecureContext() {
+  return location.protocol === 'https:' || 
+         location.hostname === 'localhost' || 
+         location.hostname === '127.0.0.1' ||
+         location.hostname.includes('.local');
+}
+
+// Onboarding flow
+async function startOnboarding() {
+  const onboardingEl = document.getElementById('onboarding');
+  
+  // Check secure context first
+  if (!isSecureContext()) {
+    onboardingEl.querySelector('p').textContent = 'Por favor, acesse via HTTPS para usar os sensores';
+    onboardingEl.querySelector('.onboarding-btn').textContent = 'Entendido';
+    onboardingEl.querySelector('.onboarding-btn').onclick = () => {
+      alert('Hospede este arquivo em HTTPS (GitHub Pages, Netlify, etc) para funcionar corretamente.');
+    };
+    return;
+  }
+  
+  // Auto-request permission
+  await requestSensorPermission();
+  
+  // Hide onboarding
+  setTimeout(() => {
+    onboardingEl.classList.add('hidden');
+    state.onboarded = true;
+    initializeApp();
+  }, 500);
+}
+
+// Request sensor permission with multiple fallback strategies
+async function requestSensorPermission() {
+  try {
+    // Strategy 1: iOS 13+ DeviceMotionEvent
+    if (typeof DeviceMotionEvent !== 'undefined' && 
+        typeof DeviceMotionEvent.requestPermission === 'function') {
+      const response = await DeviceMotionEvent.requestPermission();
+      if (response === 'granted') {
+        state.sensorReady = true;
+        return true;
+      }
+    }
+    
+    // Strategy 2: Android/Desktop - sensors usually work directly
+    if (window.DeviceMotionEvent) {
+      state.sensorReady = true;
+      return true;
+    }
+    
+    // Strategy 3: Generic Accelerometer API (newer devices)
+    if ('Accelerometer' in window) {
+      try {
+        const sensor = new Accelerometer({ frequency: 60 });
+        await sensor.start();
+        sensor.stop();
+        state.sensorReady = true;
+        return true;
+      } catch(e) {
+        console.log('Accelerometer API not available');
+      }
+    }
+    
+  } catch(error) {
+    console.error('Sensor permission error:', error);
+  }
+  
+  return false;
+}
+
+// Initialize main app
+function initializeApp() {
+  const statusCard = document.getElementById('statusCard');
+  const statusText = document.getElementById('statusText');
+  const statusDetail = document.getElementById('statusDetail');
+  const actionBtn = document.getElementById('actionBtn');
+  const actionText = document.getElementById('actionText');
+  const spinner = document.getElementById('spinner');
+  const iconReady = document.getElementById('iconReady');
+  
+  // Setup event listeners
+  setupMotionListener();
+  
+  // Check sensor availability
+  setTimeout(() => {
+    if (state.eventCount > 0) {
+      statusCard.classList.add('ready');
+      spinner.classList.add('hidden');
+      iconReady.classList.remove('hidden');
+      statusText.textContent = 'Pronto para análise';
+      statusDetail.textContent = `Taxa: ${state.sampleRate.toFixed(0)} Hz`;
+      actionBtn.disabled = false;
+      actionText.textContent = 'Iniciar Coleta';
+      document.getElementById('statusIcon').classList.add('pulse');
+      statusCard.setAttribute('aria-busy', 'false');
+    } else {
+      // Auto-retry with visual feedback
+      statusText.textContent = 'Ativando sensores...';
+      statusDetail.textContent = 'Mova o dispositivo levemente';
+      retrySetup();
+    }
+  }, 1500);
+}
+
+// Setup motion event listener
+function setupMotionListener() {
+  let lastTime = null;
+  
+  const handleMotion = (event) => {
+    state.eventCount++;
+    
+    // Calculate sample rate
+    const now = Date.now();
+    if (lastTime) {
+      const dt = (now - lastTime) / 1000;
+      state.sampleRate = state.sampleRate * 0.9 + (1/dt) * 0.1;
+    }
+    lastTime = now;
+    
+    // Collect data if in collection mode
+    if (state.collecting) {
+      const acc = event.acceleration || event.accelerationIncludingGravity;
+      if (acc) {
+        const ax = acc.x || 0;
+        const ay = acc.y || 0;
+        const az = acc.z || 0;
+        
+        let value = 0;
+        switch(state.mode) {
+          case 'mag':
+            value = Math.sqrt(ax*ax + ay*ay + az*az);
+            break;
+          case 'x': value = ax; break;
+          case 'y': value = ay; break;
+          case 'z': value = az; break;
+        }
+        
+        const timestamp = (now - state.startTime) / 1000;
+        state.data.push([timestamp, value]);
+        
+        // Update progress
+        updateProgress();
+      }
+    }
+  };
+  
+  // Remove old listener if present (avoid duplicates)
+  if (state.motionHandler) {
+    window.removeEventListener('devicemotion', state.motionHandler, { capture: true });
+  }
+  
+  // Store and add new listener (passive for performance)
+  state.motionHandler = handleMotion;
+  window.addEventListener('devicemotion', state.motionHandler, { capture: true, passive: true });
+}
+
+// Retry setup with haptic feedback
+function retrySetup() {
+  // Vibrate if available (haptic feedback)
+  if ('vibrate' in navigator) {
+    navigator.vibrate(100);
+  }
+  
+  // Create a subtle animation to prompt user interaction
+  const statusIcon = document.getElementById('statusIcon');
+  statusIcon.style.animation = 'pulse 1s infinite';
+  
+  // Check again after user movement
+  setTimeout(() => {
+    if (state.eventCount > 0) {
+      initializeApp();
+    } else {
+      document.getElementById('statusText').textContent = 'Toque para ativar';
+      document.getElementById('statusDetail').textContent = 'Precisamos de sua permissão';
+      document.getElementById('actionBtn').disabled = false;
+      document.getElementById('actionText').textContent = 'Ativar Sensores';
+      document.getElementById('actionBtn').onclick = async () => {
+        await requestSensorPermission();
+        setupMotionListener();
+        setTimeout(() => initializeApp(), 1000);
+      };
+    }
+  }, 2000);
+}
+
+// Handle main action button
+function handleAction() {
+  if (!state.collecting) {
+    startCollection();
+  } else {
+    stopCollection();
+  }
+}
+
+// Start data collection
+function startCollection() {
+  // Reset state
+  state.data = [];
+  state.collecting = true;
+  state.startTime = Date.now();
+  state.mode = document.getElementById('axis').value;
+  
+  // Update UI
+  const statusCard = document.getElementById('statusCard');
+  const actionBtn = document.getElementById('actionBtn');
+  statusCard.classList.remove('ready');
+  statusCard.classList.add('collecting');
+  actionBtn.classList.add('collecting');
+  
+  document.getElementById('statusText').textContent = 'Coletando dados...';
+  document.getElementById('statusDetail').textContent = 'Mantenha o dispositivo estável';
+  document.getElementById('actionText').textContent = 'Parar Coleta';
+  document.getElementById('statusCard').setAttribute('aria-busy', 'true');
+  
+  // Auto-stop after duration
+  const durInput = document.getElementById('duration');
+  let duration = parseInt(durInput.value);
+  const min = parseInt(durInput.min) || 10;
+  const max = parseInt(durInput.max) || 60;
+  if (Number.isNaN(duration)) duration = 20;
+  duration = Math.min(max, Math.max(min, duration));
+  if (String(durInput.value) !== String(duration)) durInput.value = String(duration);
+  setTimeout(() => {
+    if (state.collecting) stopCollection();
+  }, duration * 1000);
+}
+
+// Update progress bar
+function updateProgress() {
+  if (!state.collecting) return;
+  
+  const durInput = document.getElementById('duration');
+  let duration = parseInt(durInput.value);
+  const min = parseInt(durInput.min) || 10;
+  const max = parseInt(durInput.max) || 60;
+  if (Number.isNaN(duration)) duration = 20;
+  duration = Math.min(max, Math.max(min, duration));
+  const elapsed = (Date.now() - state.startTime) / 1000;
+  const progress = Math.min(100, (elapsed / duration) * 100);
+  
+  document.getElementById('progressBar').style.width = `${progress}%`;
+  document.getElementById('progressBar').style.transitionDuration = '0.1s';
+  
+  // Update detail text
+  const remaining = Math.max(0, duration - elapsed);
+  document.getElementById('statusDetail').textContent = `${remaining.toFixed(0)}s restantes | ${state.data.length} amostras`;
+}
+
+// Stop collection and analyze
+function stopCollection() {
+  state.collecting = false;
+  
+  // Update UI
+  const statusCard = document.getElementById('statusCard');
+  const actionBtn = document.getElementById('actionBtn');
+  statusCard.classList.remove('collecting');
+  actionBtn.classList.remove('collecting');
+  actionBtn.classList.add('success');
+  
+  document.getElementById('statusText').textContent = 'Analisando...';
+  document.getElementById('statusDetail').textContent = 'Processando dados';
+  document.getElementById('actionText').textContent = 'Análise Completa';
+  document.getElementById('progressBar').style.width = '0%';
+  
+  // Vibrate for completion
+  if ('vibrate' in navigator) {
+    navigator.vibrate([100, 50, 100]);
+  }
+  
+  // Analyze data
+  setTimeout(() => {
+    analyzeData();
+  }, 500);
+}
+
+// Simplified FFT implementation
+function computeFFT(signal) {
+  const n = signal.length;
+  const N = Math.pow(2, Math.ceil(Math.log2(n)));
+  const padded = new Float64Array(N);
+  padded.set(signal);
+  
+  // Simple DFT for demonstration (replace with proper FFT in production)
+  const real = new Float64Array(N);
+  const imag = new Float64Array(N);
+  
+  for (let k = 0; k < N/2; k++) {
+    for (let t = 0; t < N; t++) {
+      const angle = -2 * Math.PI * k * t / N;
+      real[k] += padded[t] * Math.cos(angle);
+      imag[k] += padded[t] * Math.sin(angle);
+    }
+  }
+  
+  // Compute power spectrum (magnitude squared) normalized by N
+  const power = new Float64Array(N/2);
+  for (let i = 0; i < N/2; i++) {
+    power[i] = (real[i]*real[i] + imag[i]*imag[i]) / N;
+  }
+  
+  return power;
+}
+
+// Apply Hann window to reduce spectral leakage
+function applyHannWindow(arr) {
+  const N = arr.length;
+  const out = new Float64Array(N);
+  for (let i = 0; i < N; i++) {
+    const w = 0.5 * (1 - Math.cos(2 * Math.PI * i / (N - 1 || 1)));
+    out[i] = arr[i] * w;
+  }
+  return out;
+}
+
+// Analyze collected data
+function analyzeData() {
+  if (state.data.length < 50) {
+    document.getElementById('statusText').textContent = 'Dados insuficientes';
+    document.getElementById('statusDetail').textContent = 'Tente novamente com mais tempo';
+    document.getElementById('actionBtn').disabled = false;
+    document.getElementById('actionBtn').classList.remove('success', 'collecting');
+    document.getElementById('actionText').textContent = 'Iniciar Coleta';
+    document.getElementById('statusCard').setAttribute('aria-busy', 'false');
+    return;
+  }
+  
+  // Extract time and signal arrays
+  const times = state.data.map(d => d[0]);
+  const signal = state.data.map(d => d[1]);
+  
+  // Remove DC component (detrend)
+  const mean = signal.reduce((a, b) => a + b, 0) / signal.length;
+  const detrended = signal.map(v => v - mean);
+  
+  // Compute sample rate
+  const dt = (times[times.length-1] - times[0]) / (times.length-1);
+  const fs = 1 / dt;
+  
+  // Apply window and compute FFT
+  const windowed = applyHannWindow(detrended);
+  const spectrum = computeFFT(windowed);
+  
+  // Create frequency array
+  const freqs = new Float64Array(spectrum.length);
+  for (let i = 0; i < spectrum.length; i++) {
+    freqs[i] = i * fs / (spectrum.length * 2);
+  }
+  
+  // Find peak frequency safely within 1-30 Hz
+  let peakIdx = 0;
+  let peakValue = -Infinity;
+  for (let i = 1; i < spectrum.length; i++) {
+    const f = freqs[i];
+    const v = spectrum[i];
+    if (f > 1 && f < 30 && Number.isFinite(v)) {
+      if (v > peakValue) {
+        peakValue = v;
+        peakIdx = i;
+      }
+    }
+  }
+  if (!Number.isFinite(peakValue) || peakValue < 0) {
+    peakIdx = 0;
+    peakValue = spectrum[0] || 0;
+  }
+  
+  const peakFreq = freqs[peakIdx];
+  
+  // Calculate metrics
+  const meanSpec = (spectrum.reduce((a,b) => a + (Number.isFinite(b) ? b : 0), 0)) / (spectrum.length || 1);
+  const prominence = meanSpec > 0 ? (peakValue / meanSpec) : 0;
+  
+  // Calculate FWHM (Full Width at Half Maximum)
+  const halfMax = peakValue / 2;
+  let leftIdx = peakIdx;
+  let rightIdx = peakIdx;
+  while (leftIdx > 0 && spectrum[leftIdx] > halfMax) leftIdx--;
+  while (rightIdx < spectrum.length-1 && spectrum[rightIdx] > halfMax) rightIdx++;
+  let width = freqs[rightIdx] - freqs[leftIdx];
+  if (!Number.isFinite(width) || width < 0) width = 0;
+  
+  // Store results
+  state.results = {
+    times: times,
+    signal: detrended,
+    freqs: freqs,
+    spectrum: spectrum,
+    peakFreq: peakFreq,
+    prominence: prominence,
+    width: width,
+    sampleRate: fs
+  };
+  
+  // Display results
+  displayResults();
+  
+  // Classify tremor type
+  classifyTremor();
+  
+  // Update UI
+  document.getElementById('statusCard').classList.add('ready');
+  document.getElementById('statusText').textContent = 'Análise completa';
+  document.getElementById('statusDetail').textContent = `Frequência dominante: ${peakFreq.toFixed(1)} Hz`;
+  document.getElementById('actionBtn').disabled = true;
+  document.getElementById('footerActions').classList.remove('hidden');
+  document.getElementById('statusCard').setAttribute('aria-busy', 'false');
+}
+
+// Display analysis results
+function displayResults() {
+  const { times, signal, freqs, spectrum, peakFreq, prominence, width, sampleRate } = state.results;
+  
+  // Show results section
+  document.getElementById('resultsSection').classList.remove('hidden');
+  
+  // Update metrics
+  document.getElementById('metricFreq').textContent = `${peakFreq.toFixed(1)} Hz`;
+  document.getElementById('metricProm').textContent = prominence.toFixed(1);
+  document.getElementById('metricWidth').textContent = `${width.toFixed(2)} Hz`;
+  document.getElementById('metricRate').textContent = `${sampleRate.toFixed(0)} Hz`;
+  
+  // Plot time series
+  plotTimeSeries(times, signal);
+  
+  // Plot spectrum
+  plotSpectrum(freqs, spectrum, peakFreq);
+}
+
+// Plot time series
+function plotTimeSeries(times, signal) {
+  const canvas = document.getElementById('chartTime');
+  const ctx = canvas.getContext('2d');
+  
+  // Set canvas size for retina displays
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * window.devicePixelRatio;
+  canvas.height = rect.height * window.devicePixelRatio;
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  
+  // Clear canvas
+  ctx.clearRect(0, 0, rect.width, rect.height);
+  
+  // Calculate bounds
+  const padding = 20;
+  const width = rect.width - 2 * padding;
+  const height = rect.height - 2 * padding;
+  
+  const minT = Math.min(...times);
+  const maxT = Math.max(...times);
+  const minS = Math.min(...signal);
+  const maxS = Math.max(...signal);
+  const rangeS = maxS - minS || 1;
+  
+  // Draw grid
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 5; i++) {
+    const y = padding + i * height / 5;
+    ctx.beginPath();
+    ctx.moveTo(padding, y);
+    ctx.lineTo(rect.width - padding, y);
+    ctx.stroke();
+  }
+  // X-axis ticks (time)
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+  ctx.font = '11px system-ui';
+  for (let i = 0; i <= 5; i++) {
+    const tVal = minT + (i * (maxT - minT) / 5);
+    const x = padding + (tVal - minT) / (maxT - minT || 1) * width;
+    ctx.beginPath();
+    ctx.moveTo(x, rect.height - padding);
+    ctx.lineTo(x, rect.height - padding + 4);
+    ctx.stroke();
+    ctx.fillText(tVal.toFixed(1) + 's', x - 10, rect.height - padding + 16);
+  }
+  
+  // Draw signal
+  ctx.strokeStyle = '#007AFF';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  
+  for (let i = 0; i < times.length; i++) {
+    const x = padding + (times[i] - minT) / (maxT - minT) * width;
+    const y = padding + (1 - (signal[i] - minS) / rangeS) * height;
+    
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  
+  ctx.stroke();
+  
+  // Add label
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+  ctx.font = '12px system-ui';
+  ctx.fillText('Sinal Temporal', padding, padding - 5);
+}
+
+// Plot frequency spectrum
+function plotSpectrum(freqs, spectrum, peakFreq) {
+  const canvas = document.getElementById('chartPSD');
+  const ctx = canvas.getContext('2d');
+  
+  // Set canvas size for retina displays
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * window.devicePixelRatio;
+  canvas.height = rect.height * window.devicePixelRatio;
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  
+  // Clear canvas
+  ctx.clearRect(0, 0, rect.width, rect.height);
+  
+  // Calculate bounds (limit to 0-30 Hz)
+  const padding = 20;
+  const width = rect.width - 2 * padding;
+  const height = rect.height - 2 * padding;
+  
+  const maxFreq = Math.min(30, Math.max(...freqs));
+  const maxSpec = Math.max(...spectrum) || 1;
+  
+  // Draw grid
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 5; i++) {
+    const y = padding + i * height / 5;
+    ctx.beginPath();
+    ctx.moveTo(padding, y);
+    ctx.lineTo(rect.width - padding, y);
+    ctx.stroke();
+  }
+  // X-axis ticks (frequency)
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+  ctx.font = '11px system-ui';
+  const step = maxFreq <= 10 ? 2 : 5;
+  for (let f = 0; f <= maxFreq + 0.001; f += step) {
+    const x = padding + f / (maxFreq || 1) * width;
+    ctx.beginPath();
+    ctx.moveTo(x, rect.height - padding);
+    ctx.lineTo(x, rect.height - padding + 4);
+    ctx.stroke();
+    ctx.fillText(f.toFixed(0) + 'Hz', x - 10, rect.height - padding + 16);
+  }
+  
+  // Draw spectrum
+  ctx.strokeStyle = '#34C759';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  
+  for (let i = 0; i < freqs.length && freqs[i] <= maxFreq; i++) {
+    const x = padding + freqs[i] / maxFreq * width;
+    const y = padding + (1 - spectrum[i] / maxSpec) * height;
+    
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  
+  ctx.stroke();
+  
+  // Mark peak
+  const peakIdx = freqs.findIndex(f => f >= peakFreq);
+  if (peakIdx >= 0) {
+    const x = padding + peakFreq / maxFreq * width;
+    const y = padding + (1 - spectrum[peakIdx] / maxSpec) * height;
+    
+    ctx.fillStyle = '#FF3B30';
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, 2 * Math.PI);
+    ctx.fill();
+    
+    // Add peak label
+    ctx.fillStyle = '#FF3B30';
+    ctx.font = '11px system-ui';
+    ctx.fillText(`${peakFreq.toFixed(1)} Hz`, x + 8, y + 3);
+  }
+  
+  // Add label
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+  ctx.font = '12px system-ui';
+  ctx.fillText('Espectro de Frequência', padding, padding - 5);
+}
+
+// Classify tremor type based on frequency characteristics
+function classifyTremor() {
+  if (!state.results) return;
+  
+  const { peakFreq, prominence, width } = state.results;
+  
+  // Show classification section
+  document.getElementById('classificationSection').classList.remove('hidden');
+  
+  // Simple heuristic classification
+  let scores = {
+    OT: 0,  // Orthostatic
+    ET: 0,  // Essential
+    DT: 0,  // Dystonic
+    MY: 0   // Myoclonus
+  };
+  
+  // Orthostatic tremor: 13-18 Hz, high prominence
+  if (peakFreq >= 13 && peakFreq <= 18) {
+    scores.OT = prominence > 5 ? 0.9 : 0.6;
+  }
+  
+  // Essential tremor: 4-12 Hz
+  if (peakFreq >= 4 && peakFreq <= 12) {
+    scores.ET = 0.8 - Math.abs(peakFreq - 7) * 0.1;
+  }
+  
+  // Dystonic tremor: 4-7 Hz, broader spectrum
+  if (peakFreq >= 4 && peakFreq <= 7 && width > 1.5) {
+    scores.DT = 0.7;
+  }
+  
+  // Myoclonus: irregular, broad spectrum
+  if (width > 3 && prominence < 3) {
+    scores.MY = 0.6;
+  }
+  
+  // Normalize scores to percentages
+  const total = Math.max(0.001, scores.OT + scores.ET + scores.DT + scores.MY);
+  
+  // Update UI with animation
+  setTimeout(() => {
+    animateClassification('OT', scores.OT / total * 100);
+    animateClassification('ET', scores.ET / total * 100);
+    animateClassification('DT', scores.DT / total * 100);
+    animateClassification('MY', scores.MY / total * 100);
+  }, 100);
+}
+
+// Animate classification bars
+function animateClassification(type, percentage) {
+  const bar = document.getElementById(`bar${type}`);
+  const pct = document.getElementById(`pct${type}`);
+  
+  const clamped = Math.max(0, Math.min(100, percentage));
+  bar.style.width = `${clamped}%`;
+  pct.textContent = `${Math.round(clamped)}%`;
+  bar.setAttribute('aria-valuenow', String(Math.round(clamped)));
+  
+  // Color based on confidence
+  if (clamped > 60) {
+    bar.style.background = 'var(--success)';
+  } else if (clamped > 30) {
+    bar.style.background = 'var(--warning)';
+  } else {
+    bar.style.background = 'var(--primary)';
+  }
+}
+
+// Export data as CSV
+function exportData() {
+  if (!state.data || state.data.length === 0) return;
+  
+  const axis = state.mode || 'mag';
+  const sr = state.results?.sampleRate || state.sampleRate || 0;
+  let csv = 'Time (s),Value (m/s^2),Axis,SampleRate (Hz)\n';
+  state.data.forEach(row => {
+    csv += `${row[0].toFixed(6)},${row[1].toFixed(6)},${axis},${sr.toFixed(2)}\n`;
+  });
+  
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const ts = new Date().toISOString().replace(/[:T]/g, '-').slice(0,19);
+  a.download = `tremorpsd_${axis}_${ts}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  
+  // Vibrate for feedback
+  if ('vibrate' in navigator) {
+    navigator.vibrate(50);
+  }
+}
+
+// Export PSD as CSV
+function exportPSD() {
+  if (!state.results) return;
+  const { freqs, spectrum, peakFreq } = state.results;
+  let csv = 'Frequency (Hz),Power\n';
+  for (let i = 0; i < freqs.length; i++) {
+    if (freqs[i] <= 30) {
+      const f = Number.isFinite(freqs[i]) ? freqs[i] : 0;
+      const p = Number.isFinite(spectrum[i]) ? spectrum[i] : 0;
+      csv += `${f.toFixed(6)},${p.toFixed(6)}\n`;
+    }
+  }
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const ts = new Date().toISOString().replace(/[:T]/g, '-').slice(0,19);
+  a.download = `tremorpsd_psd_${peakFreq?.toFixed?.(1) || 'na'}_${ts}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  if ('vibrate' in navigator) navigator.vibrate(50);
+}
+
+// Reset app for new analysis
+function resetApp() {
+  // Reset state
+  state.data = [];
+  state.results = null;
+  state.collecting = false;
+  
+  // Reset UI
+  document.getElementById('resultsSection').classList.add('hidden');
+  document.getElementById('classificationSection').classList.add('hidden');
+  document.getElementById('footerActions').classList.add('hidden');
+  document.getElementById('statusCard').classList.remove('collecting', 'ready', 'error');
+  document.getElementById('statusCard').classList.add('ready');
+  document.getElementById('statusText').textContent = 'Pronto para nova análise';
+  document.getElementById('statusDetail').textContent = `Taxa: ${state.sampleRate.toFixed(0)} Hz`;
+  document.getElementById('actionBtn').disabled = false;
+  document.getElementById('actionBtn').classList.remove('success', 'collecting');
+  document.getElementById('actionText').textContent = 'Iniciar Coleta';
+  document.getElementById('progressBar').style.width = '0%';
+  
+  // Reset classification bars
+  ['OT', 'ET', 'DT', 'MY'].forEach(type => {
+    document.getElementById(`bar${type}`).style.width = '0%';
+    document.getElementById(`pct${type}`).textContent = '0%';
+  });
+  
+  // Vibrate for feedback
+  if ('vibrate' in navigator) {
+    navigator.vibrate(50);
+  }
+}
+
+// Auto-initialize on load
+window.addEventListener('load', () => {
+  // Check if already onboarded (for return visits)
+  if (localStorage.getItem('tremor_onboarded')) {
+    document.getElementById('onboarding').classList.add('hidden');
+    state.onboarded = true;
+    requestSensorPermission().then(() => {
+      initializeApp();
+    });
+  }
+});
+
+// Save onboarding state
+window.addEventListener('beforeunload', () => {
+  if (state.onboarded) {
+    localStorage.setItem('tremor_onboarded', 'true');
+  }
+});
+
+// Handle orientation changes
+window.addEventListener('orientationchange', () => {
+  // Redraw canvases
+  if (state.results) {
+    setTimeout(() => {
+      displayResults();
+    }, 100);
+  }
+});
+
+// Progressive Web App capabilities
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {
+    // Service worker registration failed, app still works
+  });
+}
+
+</script>
+
+</body>
+</html>

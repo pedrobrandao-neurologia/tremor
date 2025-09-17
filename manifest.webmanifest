@@ -1,0 +1,12 @@
+{
+  "name": "TremorPSD",
+  "short_name": "TremorPSD",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "lang": "pt-BR",
+  "description": "Análise de tremor por acelerometria no navegador.",
+  "orientation": "portrait"
+}
