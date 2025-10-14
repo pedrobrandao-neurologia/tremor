@@ -112,9 +112,9 @@
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-2xl font-bold">Resultados da Análise</h2>
                      <button onclick="showInfoModal()" class="text-blue-400 hover:text-blue-300 flex items-center space-x-1">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        <span>O que isso significa?</span>
-                    </button>
+                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                         <span>O que isso significa?</span>
+                     </button>
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -123,7 +123,7 @@
                         <h3 class="font-semibold mb-4 text-lg">Métricas Principais</h3>
                         <div class="grid grid-cols-2 gap-4">
                             <div class="bg-gray-700/50 p-3 rounded-lg">
-                                <p class="text-xs text-gray-400 truncate" title="Frequência de Pico (Peak Frequency)">Freq. de Pico (Peak Freq.)</p>
+                                <p class="text-xs text-gray-400 truncate" title="Frequência de Pico (Peak Frequency)">Freq. de Pico</p>
                                 <p id="metricPeakFreq" class="text-xl font-bold text-blue-400">— Hz</p>
                             </div>
                             <div class="bg-gray-700/50 p-3 rounded-lg">
@@ -250,15 +250,15 @@ const CLASSIFICATION_TYPES = {
 
 // --- INITIALIZATION & PERMISSIONS ---
 window.addEventListener('load', () => {
+    // A permissão só pode ser solicitada em contextos seguros (HTTPS, localhost)
     const isSecureContext = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
     if (!isSecureContext) {
+        // Se não for seguro, não tenta inicializar os sensores. A tela de onboarding vai lidar com isso.
         return;
     }
-    requestSensorPermission().then(granted => {
-        if (granted) {
-            hideOnboarding();
-        }
-    });
+    // Em alguns navegadores, a permissão não é necessária, então tentamos inicializar silenciosamente.
+    // A tela de onboarding tratará os casos de falha.
+    hideOnboarding();
 });
 
 function startOnboarding() {
@@ -290,15 +290,17 @@ function hideOnboarding() {
     const appEl = document.getElementById('app');
     onboardingEl.classList.add('opacity-0', 'pointer-events-none');
     appEl.classList.remove('opacity-0');
-    setTimeout(initializeApp, 500);
+    setTimeout(initializeApp, 500); // Dá tempo para a transição CSS antes de inicializar
 }
 
 async function requestSensorPermission() {
     try {
+        // Padrão para iOS 13+
         if (typeof DeviceMotionEvent.requestPermission === 'function') {
             const permission = await DeviceMotionEvent.requestPermission();
             return permission === 'granted';
         }
+        // Para outros navegadores, a permissão é implícita ou tratada de outra forma
         return true;
     } catch (error) {
         console.error('Error requesting sensor permission:', error);
@@ -309,7 +311,7 @@ async function requestSensorPermission() {
 function initializeApp() {
     setupMotionListener();
     initCharts();
-    setTimeout(checkSensorStatus, 1500);
+    setTimeout(checkSensorStatus, 1500); // Espera um pouco para ver se os eventos do sensor chegam
 }
 
 function checkSensorStatus() {
@@ -335,6 +337,7 @@ function updateUI(status, details = {}) {
     const actionBtn = document.getElementById('actionBtn');
     const actionText = document.getElementById('actionText');
     
+    // Reset styles
     statusCard.className = 'bg-gray-800 rounded-2xl p-6 border-t-4 transition-all duration-300';
     statusIconContainer.classList.remove('pulse-glow-animation');
     spinner.classList.add('hidden');
@@ -400,6 +403,7 @@ function showInfoModal() {
 }
 
 function hideInfoModal(event) {
+    // Fecha o modal apenas se o clique for no fundo escuro (o próprio elemento modal)
     if (event && event.target.id !== 'infoModal') return;
     document.getElementById('infoModal').classList.add('hidden');
 }
@@ -415,13 +419,14 @@ function setupMotionListener() {
         const dt = (now - lastTime) / 1000;
         if (dt > 0) {
             const currentRate = 1 / dt;
+            // Média móvel para estabilizar a taxa de amostragem
             state.sampleRate = state.sampleRate * 0.95 + currentRate * 0.05;
         }
         lastTime = now;
 
         if (state.collecting) {
             const acc = event.accelerationIncludingGravity;
-            if (!acc) return;
+            if (!acc || acc.x === null) return; // Checa por dados válidos
 
             const t = (now - state.startTime) / 1000;
             const axis = document.getElementById('axis').value;
@@ -467,7 +472,7 @@ function stopCollection() {
     document.getElementById('progressBar').style.width = '0%';
     updateUI('analyzing');
     
-    setTimeout(analyzeData, 500); // Allow UI to update
+    setTimeout(analyzeData, 500); // Permite que a UI atualize antes da análise pesada
 }
 
 function updateProgress() {
@@ -481,9 +486,11 @@ function updateProgress() {
 
 
 // --- SIGNAL PROCESSING & ANALYSIS ---
+// Implementação da Transformada Rápida de Fourier (FFT) in-place
 function fft(real, imag) {
     const n = real.length;
     if (n === 0) return;
+    // Bit-reversal permutation
     for (let i = 1, j = 0; i < n; i++) {
         let bit = n >> 1;
         for (; (j & bit) !== 0; bit >>= 1) j ^= bit;
@@ -493,6 +500,7 @@ function fft(real, imag) {
             [imag[i], imag[j]] = [imag[j], imag[i]];
         }
     }
+    // Cooley-Tukey FFT
     for (let len = 2; len <= n; len <<= 1) {
         const halfLen = len >> 1;
         const angle = -2 * Math.PI / len;
@@ -515,12 +523,14 @@ function fft(real, imag) {
     }
 }
 
+// Implementação do método de Welch para cálculo da PSD
 function welch(signal, fs, nperseg) {
     const n = signal.length;
     nperseg = Math.min(nperseg, n);
     const noverlap = Math.floor(nperseg / 2);
     const step = nperseg - noverlap;
     
+    // Janela de Hann
     const win = new Float64Array(nperseg);
     for (let i = 0; i < nperseg; i++) win[i] = 0.5 * (1 - Math.cos(2 * Math.PI * i / (nperseg - 1)));
     const scale = 1.0 / (fs * (win.reduce((a, b) => a + b*b, 0) / nperseg));
@@ -557,10 +567,11 @@ function analyzeData() {
     const detrendedSignal = rawSignal.map(v => v - mean);
     
     const fs = state.sampleRate;
-    const nperseg = Math.pow(2, Math.floor(Math.log2(fs * 2)));
+    const nperseg = Math.pow(2, Math.floor(Math.log2(fs * 2))); // Segmento de ~2s
 
     const { freqs, psd } = welch(detrendedSignal, fs, nperseg);
 
+    // Encontra o pico de potência na faixa de interesse (2-20 Hz)
     let peakPower = 0, peakIdx = -1;
     for (let i = 0; i < freqs.length; i++) {
         if (freqs[i] >= 2 && freqs[i] <= 20) {
@@ -575,13 +586,14 @@ function analyzeData() {
         return;
     }
     const peakFreq = freqs[peakIdx];
+    // Calcula FWHM (Full Width at Half Maximum)
     const halfMax = peakPower / 2;
     let leftIdx = peakIdx, rightIdx = peakIdx;
     while (leftIdx > 0 && psd[leftIdx] > halfMax) leftIdx--;
     while (rightIdx < freqs.length - 1 && psd[rightIdx] > halfMax) rightIdx++;
     const fwhm = freqs[rightIdx] - freqs[leftIdx];
 
-    const totalPower = psd.reduce((a, b) => a + b, 1e-12);
+    const totalPower = psd.reduce((a, b) => a + b, 1e-12); // Adiciona epsilon para evitar divisão por zero
     const ptr = peakPower / totalPower;
     const tsi = peakFreq > 0 ? fwhm / peakFreq : 0;
     const spectralCentroid = psd.reduce((sum, p, i) => sum + p * freqs[i], 0) / totalPower;
@@ -621,20 +633,31 @@ function displayResults() {
 function classifyTremor() {
     const { peakFreq, tsi, ptr } = state.results;
     let scores = { OT: 0, ET: 0, DT: 0, MY: 0 };
-    const stabilityFactor = Math.max(0, 1 - tsi * 2);
+
+    // Fatores de característica: Estabilidade (baixo TSI) e Pureza (alto PTR)
+    const stabilityFactor = Math.max(0, 1 - tsi * 2); // Pontua mais alto para TSI baixo
     const purityFactor = ptr;
 
+    // Tremor Essencial (4-12 Hz, estável, puro)
     if (peakFreq >= 4 && peakFreq <= 12) scores.ET = (1 - Math.abs(peakFreq - 8) / 4) * stabilityFactor * purityFactor;
+    // Tremor Ortostático (13-18 Hz, muito estável, muito puro)
     if (peakFreq >= 13 && peakFreq <= 18) scores.OT = (1 - Math.abs(peakFreq - 15.5) / 2.5) * Math.pow(stabilityFactor, 2) * Math.pow(purityFactor, 2);
+    // Tremor Distônico (4-9 Hz, instável, impuro)
     if (peakFreq >= 4 && peakFreq <= 9) scores.DT = (1 - stabilityFactor) * (1 - purityFactor) * 0.5;
+    // Mioclonia (Instável e Impuro, Frequência menos relevante)
     if ((1-stabilityFactor) > 0.5 && (1-purityFactor) > 0.7) scores.MY = (1 - stabilityFactor) * 0.4;
-
+    
     const total = Object.values(scores).reduce((a, b) => a + b, 1e-9);
     const container = document.getElementById('classificationContainer');
     container.innerHTML = '';
 
-    for (const type in scores) {
-        const pct = total > 0 ? (scores[type] / total) * 100 : 0;
+    // Ordena por pontuação
+    const sortedScores = Object.entries(scores).sort(([,a],[,b]) => b-a);
+
+    for (const [type, score] of sortedScores) {
+        const pct = total > 0 ? (score / total) * 100 : 0;
+        if (pct < 1) continue; // Não mostra classificações com menos de 1%
+        
         const { label, color } = CLASSIFICATION_TYPES[type];
         const item = document.createElement('div');
         item.innerHTML = `
@@ -827,8 +850,13 @@ function resetApp() {
     document.getElementById('resultsSection').classList.add('hidden');
     document.getElementById('footerActions').classList.add('hidden');
     
-    updateTimeSeriesChart();
-    updatePsdChart();
+    // Limpa os gráficos
+    timeChart.data.labels = [];
+    timeChart.data.datasets[0].data = [];
+    timeChart.update('none');
+    psdChart.data.labels = [];
+    psdChart.data.datasets[0].data = [];
+    psdChart.update('none');
     
     updateUI('ready');
     if ('vibrate' in navigator) navigator.vibrate(50);
@@ -838,4 +866,3 @@ function resetApp() {
 
 </body>
 </html>
-
