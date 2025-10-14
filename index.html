@@ -13,6 +13,9 @@
     <!-- Chart.js via CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
+    <!-- jsPDF via CDN for PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
     <!-- Custom Font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -156,11 +159,11 @@
                 
                 <!-- Charts Section -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="bg-gray-800 rounded-2xl p-4">
+                    <div class="bg-gray-800 rounded-2xl p-4 h-64">
                         <h3 class="font-semibold mb-2 text-center text-gray-300">Sinal no Tempo</h3>
                         <canvas id="chartTime"></canvas>
                     </div>
-                    <div class="bg-gray-800 rounded-2xl p-4">
+                    <div class="bg-gray-800 rounded-2xl p-4 h-64">
                         <h3 class="font-semibold mb-2 text-center text-gray-300">Densidade Espectral de Potência (PSD)</h3>
                         <canvas id="chartPSD"></canvas>
                     </div>
@@ -169,10 +172,11 @@
         </main>
         
         <!-- Footer Actions -->
-        <footer id="footerActions" class="hidden fixed bottom-0 left-0 right-0 bg-gray-800/80 backdrop-blur-lg border-t border-gray-700 p-4">
-            <div class="max-w-4xl mx-auto flex space-x-4">
-                <button onclick="exportData()" class="w-full bg-gray-600 text-white font-semibold py-3 rounded-lg hover:bg-gray-700 transition-colors">Exportar CSV</button>
-                <button onclick="resetApp()" class="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors">Nova Análise</button>
+        <footer id="footerActions" class="hidden fixed bottom-0 left-0 right-0 bg-gray-800/80 backdrop-blur-lg border-t border-gray-700 p-2 md:p-4">
+            <div class="max-w-4xl mx-auto flex gap-2 md:gap-4">
+                <button onclick="exportPdf()" class="w-full bg-red-600 text-white font-semibold py-3 rounded-lg hover:bg-red-700 transition-colors text-sm md:text-base">Exportar PDF</button>
+                <button onclick="exportCsv()" class="w-full bg-gray-600 text-white font-semibold py-3 rounded-lg hover:bg-gray-700 transition-colors text-sm md:text-base">Exportar CSV</button>
+                <button onclick="resetApp()" class="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors text-sm md:text-base">Nova Análise</button>
             </div>
         </footer>
     </div>
@@ -758,7 +762,7 @@ function updatePsdChart() {
 
 
 // --- UTILITIES & APP LIFECYCLE ---
-function exportData() {
+function exportCsv() {
     if (!state.data || state.data.length === 0) return;
     
     let csv = 'Time(s),Acceleration(m/s^2)\n';
@@ -770,9 +774,114 @@ function exportData() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `tremor_analysis_${new Date().toISOString()}.csv`;
+    a.download = `tremor_analysis_${new Date().toISOString().slice(0,10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+    if ('vibrate' in navigator) navigator.vibrate(50);
+}
+
+function exportPdf() {
+    if (!state.results) {
+        alert("Nenhum resultado para exportar. Por favor, realize uma análise primeiro.");
+        return;
+    }
+    if (typeof jspdf === 'undefined') {
+        alert("Erro ao carregar a biblioteca de PDF. Tente recarregar a página.");
+        return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a4'); // portrait, millimeters, a4
+    const { peakFreq, fwhm, ptr, tsi, spectralCentroid, spectralEntropy } = state.results;
+
+    const margin = 15;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let currentY = 20;
+
+    // Title
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(20);
+    doc.text('Relatório de Análise de Tremor - TremorPSD', pageWidth / 2, currentY, { align: 'center' });
+    currentY += 10;
+
+    // Date
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text(new Date().toLocaleString('pt-BR'), pageWidth / 2, currentY, { align: 'center' });
+    currentY += 15;
+
+    // Metrics Section
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.text('Métricas Principais', margin, currentY);
+    currentY += 8;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(12);
+    
+    const metricsCol1 = [
+        `Frequência de Pico: ${peakFreq.toFixed(1)} Hz`,
+        `FWHM: ${fwhm.toFixed(2)} Hz`,
+        `Razão Pico/Total (PTR): ${ptr.toFixed(2)}`
+    ];
+    const metricsCol2 = [
+        `Índice de Estabilidade (TSI): ${tsi.toFixed(2)}`,
+        `Centroide Espectral: ${spectralCentroid.toFixed(1)} Hz`,
+        `Entropia Espectral: ${spectralEntropy.toFixed(2)}`
+    ];
+    
+    const col2X = pageWidth / 2 + 5;
+    
+    for (let i = 0; i < metricsCol1.length; i++) {
+        doc.text(metricsCol1[i], margin, currentY + (i * 7));
+        if (metricsCol2[i]) {
+            doc.text(metricsCol2[i], col2X, currentY + (i * 7));
+        }
+    }
+    currentY += (metricsCol1.length * 7) + 5;
+
+    // Add a line separator
+    doc.setDrawColor(200);
+    doc.line(margin, currentY, pageWidth - margin, currentY);
+    currentY += 10;
+
+    // Charts Section
+    const timeChartImg = timeChart.toBase64Image('image/png', 1.0);
+    const psdChartImg = psdChart.toBase64Image('image/png', 1.0);
+    const imgWidth = pageWidth - (margin * 2);
+    
+    const canvasWidth = timeChart.canvas.width;
+    const canvasHeight = timeChart.canvas.height;
+    const imgHeight = (imgWidth * canvasHeight) / canvasWidth;
+
+    // Time Chart
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.text('Gráfico do Sinal no Tempo', margin, currentY);
+    currentY += 6;
+    doc.addImage(timeChartImg, 'PNG', margin, currentY, imgWidth, imgHeight);
+    currentY += imgHeight + 10;
+
+    // PSD Chart
+    doc.text('Gráfico de Densidade Espectral de Potência (PSD)', margin, currentY);
+    currentY += 6;
+    doc.addImage(psdChartImg, 'PNG', margin, currentY, imgWidth, imgHeight);
+    currentY += imgHeight + 15;
+    
+    if (currentY > doc.internal.pageSize.getHeight() - 20) {
+        doc.addPage();
+        currentY = margin;
+    }
+
+    // Disclaimer
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(8);
+    const disclaimerText = "Atenção: Este relatório é gerado automaticamente e não substitui um diagnóstico médico. Os resultados devem ser interpretados por um profissional de saúde qualificado.";
+    const splitDisclaimer = doc.splitTextToSize(disclaimerText, pageWidth - (margin * 2));
+    doc.text(splitDisclaimer, margin, currentY);
+
+    // Save PDF
+    doc.save(`Relatorio-TremorPSD-${new Date().toISOString().slice(0,10)}.pdf`);
     if ('vibrate' in navigator) navigator.vibrate(50);
 }
 
