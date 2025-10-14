@@ -872,24 +872,113 @@ function exportPdf() {
 
     doc.addPage();
     currentY = margin;
-    doc.setFont('helvetica', 'bold').setFontSize(14).text('Interpretação e Cálculo das Métricas', margin, currentY);
+    doc.setFont('helvetica', 'bold').setFontSize(14).text('Interpretação das Métricas', margin, currentY);
     currentY += 10;
 
-    const addExplanation = (title, text) => {
-        doc.setFont('helvetica', 'bold').setFontSize(10);
+    const addExplanationWithRanges = (title, what, how, ranges) => {
+        doc.setFont('helvetica', 'bold').setFontSize(10.5);
         doc.text(title, margin, currentY);
         currentY += 5;
-        doc.setFont('helvetica', 'normal').setFontSize(9);
-        const splitText = doc.splitTextToSize(text, pageWidth - (margin * 2));
-        doc.text(splitText, margin, currentY);
-        currentY += (splitText.length * 4) + 6;
+
+        doc.setFont('helvetica', 'bold').setFontSize(9);
+        doc.text('O que mede:', margin, currentY);
+        doc.setFont('helvetica', 'normal');
+        let splitText = doc.splitTextToSize(what, pageWidth - (margin * 2) - 18);
+        doc.text(splitText, margin + 18, currentY);
+        currentY += (splitText.length * 3.5) + 3;
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('Como mede:', margin, currentY);
+        doc.setFont('helvetica', 'normal');
+        splitText = doc.splitTextToSize(how, pageWidth - (margin * 2) - 18);
+        doc.text(splitText, margin + 18, currentY);
+        currentY += (splitText.length * 3.5) + 3;
+
+        if (ranges) {
+            doc.setFont('helvetica', 'bold');
+            doc.text('Valores de Referência:', margin, currentY);
+            currentY += 4;
+            doc.setFont('helvetica', 'normal');
+            Object.entries(ranges).forEach(([key, value]) => {
+                const rangeText = `${key}: ${value}`;
+                splitText = doc.splitTextToSize(rangeText, pageWidth - (margin * 2) - 5);
+                doc.text('•', margin + 2, currentY + 0.5);
+                doc.text(splitText, margin + 5, currentY);
+                currentY += (splitText.length * 3.5) + 1;
+            });
+        }
+        
+        currentY += 5;
+        doc.setDrawColor(230).line(margin, currentY, pageWidth - margin, currentY);
+        currentY += 5;
+
         if (currentY > doc.internal.pageSize.getHeight() - 20) { doc.addPage(); currentY = margin; }
     };
 
-    addExplanation('Amplitude (RMS - Root Mean Square)', 'Mede a intensidade ou amplitude efetiva do tremor no domínio do tempo. É calculado como a raiz quadrada da média dos quadrados dos valores do sinal de aceleração.');
-    addExplanation('Jerk (JR50)', 'O "jerk" é a derivada da aceleração, medindo a suavidade do movimento. JR50 é a mediana (percentil 50) dos valores de jerk, indicando a "brusquidão" típica do movimento. Valores altos sugerem movimentos irregulares e súbitos.');
-    addExplanation('Potência Total e Proeminência do Pico', 'A Potência Total é a energia total do tremor, calculada somando-se todos os valores da PSD. A Proeminência mede o quão um pico se destaca do "chão" do espectro, indicando a clareza do sinal rítmico em relação ao ruído.');
-    addExplanation('Índice Wavelet', 'Mede a consistência da energia do tremor em sua frequência de pico ao longo do tempo. Um valor próximo de 1 indica que o tremor é estável e contínuo, enquanto valores baixos sugerem um tremor intermitente ou com frequência variável.');
+    addExplanationWithRanges(
+        'Frequência de Pico (Peak Frequency)',
+        'A frequência dominante do tremor, ou seja, quantas vezes por segundo (em Hertz) o movimento oscilatório ocorre. É o principal indicador para a classificação do tremor.',
+        'Identifica a frequência que corresponde ao ponto de maior potência no gráfico de Densidade Espectral de Potência (PSD).',
+        {
+            'Tremor Essencial': '4-12 Hz',
+            'Tremor Parkinsoniano': '4-7 Hz',
+            'Tremor Distônico': '4-10 Hz (geralmente irregular)',
+            'Tremor Ortostático': '13-18 Hz'
+        }
+    );
+
+    addExplanationWithRanges(
+        'Amplitude (RMS - Root Mean Square)',
+        'A intensidade e amplitude efetiva do tremor no domínio do tempo. Um valor maior indica um tremor fisicamente maior.',
+        'É calculado como a raiz quadrada da média dos valores do sinal de aceleração ao quadrado (sqrt(mean(signal^2))). Correlaciona-se bem com as escalas clínicas de avaliação de tremor.',
+        {
+            'Interpretação': 'Não há um range fixo, pois depende da gravidade. Valores maiores indicam tremor mais severo. A relação com a percepção clínica é logarítmica.'
+        }
+    );
+
+    addExplanationWithRanges(
+        'FWHM e Estabilidade (TSI)',
+        'A regularidade e ritmicidade do tremor. FWHM (Largura à Meia Altura) é a largura do pico espectral. TSI (Índice de Estabilidade) é uma medida normalizada (FWHM / Freq. Pico).',
+        'FWHM é a largura do pico de frequência quando sua potência é 50% da máxima. Um pico estreito (baixo FWHM) indica um tremor rítmico.',
+        {
+            'Tremor Essencial (FWHM)': '< 2.5 Hz (pico estreito)',
+            'Tremor Parkinsoniano (FWHM)': '2.5 - 3.5 Hz (pico estreito)',
+            'Tremor Distônico (FWHM)': '> 3.0 Hz (pico largo)',
+            'TSI': 'Valores < 0.25 geralmente indicam um tremor muito estável.'
+        }
+    );
+     addExplanationWithRanges(
+        'Jerk (JR50)',
+        'A "brusquidão" ou suavidade do movimento. O Jerk é a taxa de variação da aceleração.',
+        'É a mediana (percentil 50) dos valores absolutos do jerk ao longo do tempo. É calculado como a derivada da aceleração.',
+        {
+            'Tremor Rítmico (Essencial)': 'Jerk baixo',
+            'Movimentos Irregulares (Mioclonia)': 'Jerk elevado'
+        }
+    );
+    
+    doc.addPage();
+    currentY = margin;
+
+    addExplanationWithRanges(
+        'Potência Total e Proeminência do Pico',
+        'Potência Total representa a energia total do movimento na faixa de frequência do tremor. Proeminência mede o quão "limpo" e distinto é o pico principal do tremor em relação a outros movimentos ou ruídos de fundo.',
+        'A Potência Total é a área sob a curva do gráfico de PSD. A Proeminência é a "altura" do pico em relação ao "vale" mais próximo no espectro.',
+        {
+            'Tremores Rítmicos (Essencial, Parkinsoniano)': 'Proeminência alta',
+            'Tremores Irregulares (Distônico)': 'Proeminência baixa'
+        }
+    );
+
+    addExplanationWithRanges(
+        'Entropia Espectral e Índice Wavelet',
+        'Entropia mede a complexidade ou "desordem" do sinal. O Índice Wavelet avalia a consistência do tremor ao longo do tempo.',
+        'A Entropia de Shannon é aplicada ao espectro de potência normalizado. O Índice Wavelet compara a energia do sinal em uma wavelet ajustada para a frequência do tremor versus uma wavelet de ruído.',
+        {
+            'Sinal Puro e Rítmico': 'Baixa Entropia e Índice Wavelet próximo de 1.0',
+            'Sinal Irregular ou Intermitente': 'Alta Entropia e Índice Wavelet mais baixo.'
+        }
+    );
     
     const disclaimerText = "Atenção: Este relatório é gerado automaticamente e não substitui um diagnóstico médico. Os resultados devem ser interpretados por um profissional de saúde qualificado.";
     const splitDisclaimer = doc.splitTextToSize(disclaimerText, pageWidth - (margin * 2));
