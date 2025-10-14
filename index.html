@@ -118,22 +118,30 @@
                     <!-- Metrics Grid -->
                     <div class="bg-gray-800 rounded-2xl p-6">
                         <h3 class="font-semibold mb-4 text-lg">Métricas Principais</h3>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="bg-gray-700/50 p-4 rounded-lg">
-                                <p class="text-sm text-gray-400">Frequência de Pico</p>
-                                <p id="metricFreq" class="text-2xl font-bold text-blue-400">— Hz</p>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            <div class="bg-gray-700/50 p-3 rounded-lg text-center">
+                                <p class="text-xs text-gray-400">Freq. de Pico</p>
+                                <p id="metricFreq" class="text-xl font-bold text-blue-400">— Hz</p>
                             </div>
-                            <div class="bg-gray-700/50 p-4 rounded-lg">
-                                <p class="text-sm text-gray-400">Potência de Pico</p>
-                                <p id="metricPower" class="text-2xl font-bold text-green-400">—</p>
+                            <div class="bg-gray-700/50 p-3 rounded-lg text-center">
+                                <p class="text-xs text-gray-400">FWHM</p>
+                                <p id="metricFwhm" class="text-xl font-bold text-yellow-400">— Hz</p>
                             </div>
-                            <div class="bg-gray-700/50 p-4 rounded-lg">
-                                <p class="text-sm text-gray-400">Largura Espectral</p>
-                                <p id="metricWidth" class="text-2xl font-bold text-yellow-400">— Hz</p>
+                            <div class="bg-gray-700/50 p-3 rounded-lg text-center">
+                                <p class="text-xs text-gray-400">Pico/Total (PTR)</p>
+                                <p id="metricPtr" class="text-xl font-bold text-green-400">—</p>
                             </div>
-                             <div class="bg-gray-700/50 p-4 rounded-lg">
-                                <p class="text-sm text-gray-400">Taxa de Amostra</p>
-                                <p id="metricRate" class="text-2xl font-bold text-gray-300">— Hz</p>
+                            <div class="bg-gray-700/50 p-3 rounded-lg text-center">
+                                <p class="text-xs text-gray-400">TSI</p>
+                                <p id="metricTsi" class="text-xl font-bold text-purple-400">—</p>
+                            </div>
+                            <div class="bg-gray-700/50 p-3 rounded-lg text-center">
+                                <p class="text-xs text-gray-400">Centroide Esp.</p>
+                                <p id="metricCentroid" class="text-xl font-bold text-orange-400">— Hz</p>
+                            </div>
+                            <div class="bg-gray-700/50 p-3 rounded-lg text-center">
+                                <p class="text-xs text-gray-400">Entropia Esp.</p>
+                                <p id="metricEntropy" class="text-xl font-bold text-pink-400">—</p>
                             </div>
                         </div>
                     </div>
@@ -177,22 +185,35 @@
                 <button onclick="hideInfoModal()" class="text-gray-400 hover:text-white">&times;</button>
             </div>
             <div class="prose prose-invert prose-sm md:prose-base text-gray-300 space-y-4">
-                <p>Esta análise transforma o sinal do acelerômetro (tremor) em um gráfico que mostra quais frequências são mais intensas. Isso é chamado de <strong>Densidade Espectral de Potência (PSD)</strong>.</p>
+                <p>Esta análise transforma o sinal do acelerômetro (tremor) em um gráfico de **Densidade Espectral de Potência (PSD)**, que mostra quais frequências são mais intensas.</p>
+                
                 <div>
                     <h4 class="font-semibold text-white">Frequência de Pico (Hz)</h4>
-                    <p>É a frequência onde o tremor é mais forte. Diferentes condições médicas tendem a ter tremores em faixas de frequência características (ex: Tremor Essencial tipicamente entre 4-12 Hz).</p>
+                    <p>A frequência onde o tremor é mais forte. É o principal indicador para classificar o tipo de tremor.</p>
                 </div>
                 <div>
-                    <h4 class="font-semibold text-white">Potência de Pico ((m/s²)²/Hz)</h4>
-                    <p>Mede a intensidade ou "energia" do tremor na frequência de pico. Um valor mais alto sugere um tremor de maior amplitude.</p>
+                    <h4 class="font-semibold text-white">FWHM (Hz)</h4>
+                    <p>"Largura à Meia Altura". Mede a regularidade do tremor. Um valor baixo (pico fino) significa um tremor rítmico. Um valor alto (pico largo) sugere irregularidade.</p>
                 </div>
                 <div>
-                    <h4 class="font-semibold text-white">Largura Espectral (Hz)</h4>
-                    <p>Indica a regularidade do tremor. Um valor baixo (pico "fino") significa que o tremor é muito rítmico e regular. Um valor alto (pico "largo") sugere um tremor mais irregular.</p>
+                    <h4 class="font-semibold text-white">Razão Pico/Total (PTR)</h4>
+                    <p>Mede a concentração de potência do tremor. Um valor alto indica que quase toda a "energia" do tremor está na frequência de pico, sugerindo um tremor "puro".</p>
                 </div>
-                 <div>
+                <div>
+                    <h4 class="font-semibold text-white">Índice de Estabilidade (TSI)</h4>
+                    <p>Calculado como FWHM / Freq. de Pico. É uma medida normalizada da estabilidade do pico. Valores baixos (ex: < 0.2) indicam um tremor muito estável.</p>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-white">Centroide Espectral (Hz)</h4>
+                    <p>O "centro de massa" da potência do espectro. Se o centroide estiver próximo da Frequência de Pico, indica um tremor com pouca interferência de outras frequências.</p>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-white">Entropia Espectral</h4>
+                    <p>Mede a complexidade ou "desordem" do sinal. Um tremor rítmico e puro tem baixa entropia. Um sinal ruidoso ou com múltiplos picos de tremor tem alta entropia.</p>
+                </div>
+                <div>
                     <h4 class="font-semibold text-white">Classificação Sugerida</h4>
-                    <p>Com base nas características encontradas, o sistema oferece uma sugestão de classificação. <strong>Isto não é um diagnóstico</strong> e deve ser interpretado por um profissional de saúde qualificado.</p>
+                    <p>Com base nas características encontradas, o sistema oferece uma sugestão. <strong>Isto não é um diagnóstico</strong> e deve ser interpretado por um profissional de saúde qualificado.</p>
                 </div>
                  <p class="text-xs text-gray-500 pt-4 border-t border-gray-700">A análise é feita usando o Método de Welch para calcular a PSD, uma técnica robusta para análise de sinais biológicos.</p>
             </div>
@@ -595,7 +616,16 @@ function analyzeData() {
     while (leftIdx > 0 && psd[leftIdx] > halfMax) leftIdx--;
     let rightIdx = peakIdx;
     while (rightIdx < freqs.length - 1 && psd[rightIdx] > halfMax) rightIdx++;
-    const width = freqs[rightIdx] - freqs[leftIdx];
+    const fwhm = freqs[rightIdx] - freqs[leftIdx];
+
+    // --- NEW METRICS CALCULATION ---
+    const totalPower = psd.reduce((a, b) => a + b, 1e-12); // Add epsilon to avoid division by zero
+    const ptr = peakPower / totalPower;
+    const tsi = peakFreq > 0 ? fwhm / peakFreq : 0;
+    const spectralCentroid = psd.reduce((sum, p, i) => sum + p * freqs[i], 0) / totalPower;
+    
+    const normalizedPsd = psd.map(p => p / totalPower);
+    const spectralEntropy = -normalizedPsd.reduce((sum, p) => sum + (p > 0 ? p * Math.log2(p) : 0), 0);
 
     state.results = {
         times: state.data.map(d => d.t),
@@ -604,7 +634,11 @@ function analyzeData() {
         psd,
         peakFreq,
         peakPower,
-        width,
+        fwhm,
+        ptr,
+        tsi,
+        spectralCentroid,
+        spectralEntropy,
         sampleRate: fs
     };
 
@@ -619,42 +653,44 @@ function analyzeData() {
 
 // --- RESULTS DISPLAY & CHARTS ---
 function displayResults() {
-    const { peakFreq, peakPower, width, sampleRate } = state.results;
+    const { peakFreq, fwhm, ptr, tsi, spectralCentroid, spectralEntropy } = state.results;
 
     document.getElementById('metricFreq').textContent = `${peakFreq.toFixed(1)} Hz`;
-    document.getElementById('metricPower').textContent = `${(peakPower * 1e3).toExponential(1)}`;
-    document.getElementById('metricWidth').textContent = `${width.toFixed(2)} Hz`;
-    document.getElementById('metricRate').textContent = `${sampleRate.toFixed(0)} Hz`;
+    document.getElementById('metricFwhm').textContent = `${fwhm.toFixed(2)} Hz`;
+    document.getElementById('metricPtr').textContent = `${ptr.toFixed(2)}`;
+    document.getElementById('metricTsi').textContent = `${tsi.toFixed(2)}`;
+    document.getElementById('metricCentroid').textContent = `${spectralCentroid.toFixed(1)} Hz`;
+    document.getElementById('metricEntropy').textContent = `${spectralEntropy.toFixed(2)}`;
 
     updateTimeSeriesChart();
     updatePsdChart();
 }
 
 function classifyTremor() {
-    const { peakFreq, width, peakPower } = state.results;
+    const { peakFreq, tsi, ptr } = state.results;
     let scores = { OT: 0, ET: 0, DT: 0, MY: 0 };
     
-    // Normalize power for consistent scoring
-    const normalizedPower = Math.log10(peakPower * 1e6 + 1);
+    const stabilityFactor = Math.max(0, 1 - tsi * 2); // Higher for stable tremors (low TSI)
+    const purityFactor = ptr; // Higher for "pure" tremors (high PTR)
 
-    // Essential Tremor (4-12 Hz, regular)
+    // Essential Tremor (4-12 Hz, very stable and pure)
     if (peakFreq >= 4 && peakFreq <= 12) {
-        scores.ET = (1 - Math.abs(peakFreq - 8) / 4) * (1 - Math.min(1, width / 4)) * normalizedPower;
+        scores.ET = (1 - Math.abs(peakFreq - 8) / 4) * stabilityFactor * purityFactor;
     }
-    // Orthostatic Tremor (13-18 Hz, very regular)
+    // Orthostatic Tremor (13-18 Hz, extremely stable and pure)
     if (peakFreq >= 13 && peakFreq <= 18) {
-        scores.OT = (1 - Math.abs(peakFreq - 15.5) / 2.5) * Math.max(0, 1 - width) * normalizedPower;
+        scores.OT = (1 - Math.abs(peakFreq - 15.5) / 2.5) * Math.pow(stabilityFactor, 2) * Math.pow(purityFactor, 2);
     }
-     // Dystonic Tremor (4-7 Hz, often irregular)
-    if (peakFreq >= 4 && peakFreq <= 9 && width > 1.5) {
-        scores.DT = 0.5 * normalizedPower;
+     // Dystonic Tremor (4-9 Hz, less stable/pure)
+    if (peakFreq >= 4 && peakFreq <= 9) {
+        scores.DT = (1 - stabilityFactor) * (1 - purityFactor) * 0.5;
     }
-    // Myoclonus (irregular, broad spectrum)
-    if (width > 3 && normalizedPower > 0.5) {
-        scores.MY = 0.4 * normalizedPower;
+    // Myoclonus (very unstable/impure)
+    if ((1-stabilityFactor) > 0.5 && (1-purityFactor) > 0.7) {
+        scores.MY = (1 - stabilityFactor) * 0.4;
     }
 
-    const total = Object.values(scores).reduce((a, b) => a + b, 0);
+    const total = Object.values(scores).reduce((a, b) => a + b, 1e-9);
     const container = document.getElementById('classificationContainer');
     container.innerHTML = ''; // Clear previous results
 
