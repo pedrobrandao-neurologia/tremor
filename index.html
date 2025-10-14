@@ -120,31 +120,43 @@
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                     <!-- Metrics Grid -->
                     <div class="bg-gray-800 rounded-2xl p-6">
-                        <h3 class="font-semibold mb-4 text-lg">Métricas Principais</h3>
-                        <div class="grid grid-cols-2 gap-4">
+                        <h3 class="font-semibold mb-4 text-lg">Métricas de Análise</h3>
+                        <div class="grid grid-cols-3 gap-4">
                             <div class="bg-gray-700/50 p-3 rounded-lg">
                                 <p class="text-xs text-gray-400 truncate" title="Frequência de Pico (Peak Frequency)">Freq. de Pico</p>
                                 <p id="metricPeakFreq" class="text-xl font-bold text-blue-400">— Hz</p>
+                            </div>
+                            <div class="bg-gray-700/50 p-3 rounded-lg">
+                                <p class="text-xs text-gray-400" title="Potência Espectral Total">Potência Total</p>
+                                <p id="metricTotalPower" class="text-xl font-bold text-teal-400">—</p>
+                            </div>
+                            <div class="bg-gray-700/50 p-3 rounded-lg">
+                                <p class="text-xs text-gray-400" title="Proeminência do Pico">Proeminência</p>
+                                <p id="metricProminence" class="text-xl font-bold text-cyan-400">—</p>
                             </div>
                             <div class="bg-gray-700/50 p-3 rounded-lg">
                                 <p class="text-xs text-gray-400" title="Largura à Meia Altura (Full Width at Half Maximum)">FWHM</p>
                                 <p id="metricFWHM" class="text-xl font-bold text-yellow-400">— Hz</p>
                             </div>
                             <div class="bg-gray-700/50 p-3 rounded-lg">
-                                <p class="text-xs text-gray-400" title="Razão Pico/Total (Peak-to-Total Ratio)">Pico/Total (PTR)</p>
-                                <p id="metricPTR" class="text-xl font-bold text-green-400">—</p>
-                            </div>
-                            <div class="bg-gray-700/50 p-3 rounded-lg">
                                 <p class="text-xs text-gray-400" title="Índice de Estabilidade do Tremor (Tremor Stability Index)">Estabilidade (TSI)</p>
                                 <p id="metricTSI" class="text-xl font-bold text-purple-400">—</p>
                             </div>
                             <div class="bg-gray-700/50 p-3 rounded-lg">
-                                <p class="text-xs text-gray-400" title="Centroide Espectral (Spectral Centroid)">Centroide Esp.</p>
-                                <p id="metricCentroid" class="text-xl font-bold text-orange-400">— Hz</p>
-                            </div>
-                            <div class="bg-gray-700/50 p-3 rounded-lg">
                                 <p class="text-xs text-gray-400" title="Entropia Espectral (Spectral Entropy)">Entropia Esp.</p>
                                 <p id="metricEntropy" class="text-xl font-bold text-pink-400">—</p>
+                            </div>
+                             <div class="bg-gray-700/50 p-3 rounded-lg">
+                                <p class="text-xs text-gray-400" title="Valor Quadrático Médio (Root Mean Square)">Amplitude (RMS)</p>
+                                <p id="metricRMS" class="text-xl font-bold text-lime-400">—</p>
+                            </div>
+                            <div class="bg-gray-700/50 p-3 rounded-lg">
+                                <p class="text-xs text-gray-400" title="Mediana do Jerk (50º percentil)">Jerk (JR50)</p>
+                                <p id="metricJR50" class="text-xl font-bold text-red-400">—</p>
+                            </div>
+                            <div class="bg-gray-700/50 p-3 rounded-lg">
+                                <p class="text-xs text-gray-400" title="Índice de Energia Wavelet">Índice Wavelet</p>
+                                <p id="metricWavelet" class="text-xl font-bold text-indigo-400">—</p>
                             </div>
                         </div>
                     </div>
@@ -192,35 +204,14 @@
             <div class="prose prose-invert prose-sm md:prose-base text-gray-300 space-y-4">
                 <p>Esta análise transforma o sinal do acelerômetro (tremor) em um gráfico de **Densidade Espectral de Potência (PSD)**, que mostra quais frequências são mais intensas.</p>
                 
-                <div>
-                    <h4 class="font-semibold text-white">Frequência de Pico (Hz)</h4>
-                    <p>A frequência onde o tremor é mais forte. É o principal indicador para classificar o tipo de tremor.</p>
-                </div>
-                <div>
-                    <h4 class="font-semibold text-white">FWHM (Hz)</h4>
-                    <p>"Largura à Meia Altura". Mede a regularidade do tremor. Um valor baixo (pico fino) significa um tremor rítmico. Um valor alto (pico largo) sugere irregularidade.</p>
-                </div>
-                <div>
-                    <h4 class="font-semibold text-white">Razão Pico/Total (PTR)</h4>
-                    <p>Mede a concentração de potência do tremor. Um valor alto indica que quase toda a "energia" do tremor está na frequência de pico, sugerindo um tremor "puro".</p>
-                </div>
-                <div>
-                    <h4 class="font-semibold text-white">Índice de Estabilidade (TSI)</h4>
-                    <p>Calculado como FWHM / Freq. de Pico. É uma medida normalizada da estabilidade do pico. Valores baixos (ex: < 0.2) indicam um tremor muito estável.</p>
-                </div>
-                <div>
-                    <h4 class="font-semibold text-white">Centroide Espectral (Hz)</h4>
-                    <p>O "centro de massa" da potência do espectro. Se o centroide estiver próximo da Frequência de Pico, indica um tremor com pouca interferência de outras frequências.</p>
-                </div>
-                <div>
-                    <h4 class="font-semibold text-white">Entropia Espectral</h4>
-                    <p>Mede a complexidade ou "desordem" do sinal. Um tremor rítmico e puro tem baixa entropia. Um sinal ruidoso ou com múltiplos picos de tremor tem alta entropia.</p>
-                </div>
-                <div>
-                    <h4 class="font-semibold text-white">Classificação Sugerida</h4>
-                    <p>Com base nas características encontradas, o sistema oferece uma sugestão. <strong>Isto não é um diagnóstico</strong> e deve ser interpretado por um profissional de saúde qualificado.</p>
-                </div>
-                 <p class="text-xs text-gray-500 pt-4 border-t border-gray-700">A análise é feita usando o Método de Welch para calcular a PSD, uma técnica robusta para análise de sinais biológicos.</p>
+                <div><h4 class="font-semibold text-white">Frequência de Pico (Hz)</h4><p>A frequência onde o tremor é mais forte. É o principal indicador para classificar o tipo de tremor.</p></div>
+                <div><h4 class="font-semibold text-white">Amplitude (RMS)</h4><p>Mede a intensidade ou amplitude efetiva do tremor. Um valor mais alto indica um tremor de maior amplitude.</p></div>
+                <div><h4 class="font-semibold text-white">Potência Total & Proeminência</h4><p><b>Potência Total</b> é a energia total do sinal de tremor. <b>Proeminência</b> mede o quão claro e distinto é o pico principal de tremor em relação ao ruído de fundo.</p></div>
+                <div><h4 class="font-semibold text-white">FWHM & Estabilidade (TSI)</h4><p>Medem a regularidade do tremor. Valores baixos (pico fino) significam um tremor muito rítmico e estável.</p></div>
+                <div><h4 class="font-semibold text-white">Jerk (JR50)</h4><p>Mede a "brusquidão" do movimento. Valores altos são característicos de movimentos irregulares e súbitos, como mioclonias.</p></div>
+                <div><h4 class="font-semibold text-white">Entropia & Índice Wavelet</h4><p><b>Entropia</b> mede a complexidade do sinal (sinais puros têm baixa entropia). O <b>Índice Wavelet</b> avalia a consistência do tremor na sua frequência principal ao longo do tempo.</p></div>
+                <div><h4 class="font-semibold text-white">Classificação Sugerida</h4><p>Com base nas características encontradas, o sistema oferece uma sugestão. <strong>Isto não é um diagnóstico</strong> e deve ser interpretado por um profissional de saúde qualificado.</p></div>
+                <p class="text-xs text-gray-500 pt-4 border-t border-gray-700">A análise é feita usando o Método de Welch para calcular a PSD, uma técnica robusta para análise de sinais biológicos.</p>
             </div>
         </div>
     </div>
@@ -250,14 +241,10 @@ const CLASSIFICATION_TYPES = {
 
 // --- INITIALIZATION & PERMISSIONS ---
 window.addEventListener('load', () => {
-    // A permissão só pode ser solicitada em contextos seguros (HTTPS, localhost)
     const isSecureContext = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
     if (!isSecureContext) {
-        // Se não for seguro, não tenta inicializar os sensores. A tela de onboarding vai lidar com isso.
         return;
     }
-    // Em alguns navegadores, a permissão não é necessária, então tentamos inicializar silenciosamente.
-    // A tela de onboarding tratará os casos de falha.
     hideOnboarding();
 });
 
@@ -290,17 +277,15 @@ function hideOnboarding() {
     const appEl = document.getElementById('app');
     onboardingEl.classList.add('opacity-0', 'pointer-events-none');
     appEl.classList.remove('opacity-0');
-    setTimeout(initializeApp, 500); // Dá tempo para a transição CSS antes de inicializar
+    setTimeout(initializeApp, 500);
 }
 
 async function requestSensorPermission() {
     try {
-        // Padrão para iOS 13+
         if (typeof DeviceMotionEvent.requestPermission === 'function') {
             const permission = await DeviceMotionEvent.requestPermission();
             return permission === 'granted';
         }
-        // Para outros navegadores, a permissão é implícita ou tratada de outra forma
         return true;
     } catch (error) {
         console.error('Error requesting sensor permission:', error);
@@ -311,7 +296,7 @@ async function requestSensorPermission() {
 function initializeApp() {
     setupMotionListener();
     initCharts();
-    setTimeout(checkSensorStatus, 1500); // Espera um pouco para ver se os eventos do sensor chegam
+    setTimeout(checkSensorStatus, 1500);
 }
 
 function checkSensorStatus() {
@@ -337,7 +322,6 @@ function updateUI(status, details = {}) {
     const actionBtn = document.getElementById('actionBtn');
     const actionText = document.getElementById('actionText');
     
-    // Reset styles
     statusCard.className = 'bg-gray-800 rounded-2xl p-6 border-t-4 transition-all duration-300';
     statusIconContainer.classList.remove('pulse-glow-animation');
     spinner.classList.add('hidden');
@@ -403,7 +387,6 @@ function showInfoModal() {
 }
 
 function hideInfoModal(event) {
-    // Fecha o modal apenas se o clique for no fundo escuro (o próprio elemento modal)
     if (event && event.target.id !== 'infoModal') return;
     document.getElementById('infoModal').classList.add('hidden');
 }
@@ -419,14 +402,13 @@ function setupMotionListener() {
         const dt = (now - lastTime) / 1000;
         if (dt > 0) {
             const currentRate = 1 / dt;
-            // Média móvel para estabilizar a taxa de amostragem
             state.sampleRate = state.sampleRate * 0.95 + currentRate * 0.05;
         }
         lastTime = now;
 
         if (state.collecting) {
             const acc = event.accelerationIncludingGravity;
-            if (!acc || acc.x === null) return; // Checa por dados válidos
+            if (!acc || acc.x === null) return;
 
             const t = (now - state.startTime) / 1000;
             const axis = document.getElementById('axis').value;
@@ -472,7 +454,7 @@ function stopCollection() {
     document.getElementById('progressBar').style.width = '0%';
     updateUI('analyzing');
     
-    setTimeout(analyzeData, 500); // Permite que a UI atualize antes da análise pesada
+    setTimeout(analyzeData, 500);
 }
 
 function updateProgress() {
@@ -486,11 +468,9 @@ function updateProgress() {
 
 
 // --- SIGNAL PROCESSING & ANALYSIS ---
-// Implementação da Transformada Rápida de Fourier (FFT) in-place
 function fft(real, imag) {
     const n = real.length;
     if (n === 0) return;
-    // Bit-reversal permutation
     for (let i = 1, j = 0; i < n; i++) {
         let bit = n >> 1;
         for (; (j & bit) !== 0; bit >>= 1) j ^= bit;
@@ -500,7 +480,6 @@ function fft(real, imag) {
             [imag[i], imag[j]] = [imag[j], imag[i]];
         }
     }
-    // Cooley-Tukey FFT
     for (let len = 2; len <= n; len <<= 1) {
         const halfLen = len >> 1;
         const angle = -2 * Math.PI / len;
@@ -523,14 +502,12 @@ function fft(real, imag) {
     }
 }
 
-// Implementação do método de Welch para cálculo da PSD
 function welch(signal, fs, nperseg) {
     const n = signal.length;
     nperseg = Math.min(nperseg, n);
     const noverlap = Math.floor(nperseg / 2);
     const step = nperseg - noverlap;
     
-    // Janela de Hann
     const win = new Float64Array(nperseg);
     for (let i = 0; i < nperseg; i++) win[i] = 0.5 * (1 - Math.cos(2 * Math.PI * i / (nperseg - 1)));
     const scale = 1.0 / (fs * (win.reduce((a, b) => a + b*b, 0) / nperseg));
@@ -557,6 +534,55 @@ function welch(signal, fs, nperseg) {
     return { freqs, psd };
 }
 
+function morletWavelet(length, frequency, sampleRate) {
+    const real = new Float64Array(length);
+    const imag = new Float64Array(length);
+    const sigma = length / (2 * Math.PI * (frequency / (sampleRate / length)) * 2.5);
+    const halfLength = Math.floor(length / 2);
+
+    for (let i = 0; i < length; i++) {
+        const t = i - halfLength;
+        const gaussian = Math.exp(-(t * t) / (2 * sigma * sigma));
+        const angle = 2 * Math.PI * frequency * (t / sampleRate);
+        real[i] = Math.cos(angle) * gaussian;
+        imag[i] = Math.sin(angle) * gaussian;
+    }
+    return { real, imag };
+}
+
+function convolve(signal, waveletReal) {
+    const signalLen = signal.length;
+    const waveletLen = waveletReal.length;
+    let maxEnergy = 0;
+
+    for (let i = 0; i <= signalLen - waveletLen; i++) {
+        let energy = 0;
+        for (let j = 0; j < waveletLen; j++) {
+            energy += signal[i + j] * waveletReal[j];
+        }
+        const currentEnergy = energy * energy;
+        if (currentEnergy > maxEnergy) {
+            maxEnergy = currentEnergy;
+        }
+    }
+    return maxEnergy;
+}
+
+function calculateWaveletEnergyRatio(signal, fs, peakFreq) {
+    if (peakFreq < 2 || !fs) return 0;
+    const waveletLength = Math.min(signal.length, Math.floor(fs));
+    
+    const peakWav = morletWavelet(waveletLength, peakFreq, fs);
+    const peakEnergy = convolve(signal, peakWav.real);
+    
+    const noiseFreq = peakFreq > 10 ? 5 : 15;
+    const noiseWav = morletWavelet(waveletLength, noiseFreq, fs);
+    const noiseEnergy = convolve(signal, noiseWav.real);
+
+    return peakEnergy / (peakEnergy + noiseEnergy + 1e-9);
+}
+
+
 function analyzeData() {
     if (state.data.length < 50) {
         updateUI('error', { text: 'Dados Insuficientes', detail: 'Colete por mais tempo.' });
@@ -566,12 +592,24 @@ function analyzeData() {
     const mean = rawSignal.reduce((a, b) => a + b, 0) / rawSignal.length;
     const detrendedSignal = rawSignal.map(v => v - mean);
     
+    const rms = Math.sqrt(detrendedSignal.reduce((sum, v) => sum + v * v, 0) / detrendedSignal.length);
+    
+    const jerkSignal = [];
+    const times = state.data.map(d => d.t);
+    for (let i = 1; i < detrendedSignal.length; i++) {
+        const dt = times[i] - times[i - 1];
+        if (dt > 0) {
+            jerkSignal.push(Math.abs((detrendedSignal[i] - detrendedSignal[i - 1]) / dt));
+        }
+    }
+    jerkSignal.sort((a, b) => a - b);
+    const jr50 = jerkSignal.length > 0 ? jerkSignal[Math.floor(jerkSignal.length / 2)] : 0;
+    
     const fs = state.sampleRate;
-    const nperseg = Math.pow(2, Math.floor(Math.log2(fs * 2))); // Segmento de ~2s
+    const nperseg = Math.pow(2, Math.floor(Math.log2(fs * 2)));
 
     const { freqs, psd } = welch(detrendedSignal, fs, nperseg);
 
-    // Encontra o pico de potência na faixa de interesse (2-20 Hz)
     let peakPower = 0, peakIdx = -1;
     for (let i = 0; i < freqs.length; i++) {
         if (freqs[i] >= 2 && freqs[i] <= 20) {
@@ -586,25 +624,29 @@ function analyzeData() {
         return;
     }
     const peakFreq = freqs[peakIdx];
-    // Calcula FWHM (Full Width at Half Maximum)
     const halfMax = peakPower / 2;
     let leftIdx = peakIdx, rightIdx = peakIdx;
     while (leftIdx > 0 && psd[leftIdx] > halfMax) leftIdx--;
     while (rightIdx < freqs.length - 1 && psd[rightIdx] > halfMax) rightIdx++;
     const fwhm = freqs[rightIdx] - freqs[leftIdx];
 
-    const totalPower = psd.reduce((a, b) => a + b, 1e-12); // Adiciona epsilon para evitar divisão por zero
-    const ptr = peakPower / totalPower;
+    const totalPower = psd.reduce((a, b) => a + b, 1e-12);
+    
+    let valley1 = Infinity, valley2 = Infinity;
+    for (let i = 0; i < peakIdx; i++) if (psd[i] < valley1) valley1 = psd[i];
+    for (let i = peakIdx + 1; i < psd.length; i++) if (psd[i] < valley2) valley2 = psd[i];
+    const baseline = Math.min(valley1, valley2);
+    const peakProminence = peakPower - baseline;
+
+    const waveletIndex = calculateWaveletEnergyRatio(detrendedSignal, fs, peakFreq);
+
     const tsi = peakFreq > 0 ? fwhm / peakFreq : 0;
-    const spectralCentroid = psd.reduce((sum, p, i) => sum + p * freqs[i], 0) / totalPower;
     const normalizedPsd = psd.map(p => p / totalPower);
     const spectralEntropy = -normalizedPsd.reduce((sum, p) => sum + (p > 0 ? p * Math.log2(p) : 0), 0);
 
     state.results = {
-        times: state.data.map(d => d.t),
-        rawSignal,
-        detrendedSignal,
-        freqs, psd, peakFreq, peakPower, fwhm, ptr, tsi, spectralCentroid, spectralEntropy, sampleRate: fs
+        times, rawSignal, detrendedSignal, freqs, psd, peakFreq, peakPower, fwhm, tsi, 
+        spectralEntropy, sampleRate: fs, rms, jr50, totalPower, peakProminence, waveletIndex
     };
 
     displayResults();
@@ -617,46 +659,52 @@ function analyzeData() {
 
 // --- RESULTS DISPLAY & CHARTS ---
 function displayResults() {
-    const { peakFreq, fwhm, ptr, tsi, spectralCentroid, spectralEntropy } = state.results;
+    const { peakFreq, fwhm, tsi, spectralEntropy, rms, jr50, totalPower, peakProminence, waveletIndex } = state.results;
 
     document.getElementById('metricPeakFreq').textContent = `${peakFreq.toFixed(1)} Hz`;
     document.getElementById('metricFWHM').textContent = `${fwhm.toFixed(2)} Hz`;
-    document.getElementById('metricPTR').textContent = `${ptr.toFixed(2)}`;
     document.getElementById('metricTSI').textContent = `${tsi.toFixed(2)}`;
-    document.getElementById('metricCentroid').textContent = `${spectralCentroid.toFixed(1)} Hz`;
     document.getElementById('metricEntropy').textContent = `${spectralEntropy.toFixed(2)}`;
+    document.getElementById('metricRMS').textContent = `${rms.toFixed(2)}`;
+    document.getElementById('metricJR50').textContent = `${jr50.toFixed(1)}`;
+    document.getElementById('metricTotalPower').textContent = `${(totalPower * 1e3).toExponential(1)}`;
+    document.getElementById('metricProminence').textContent = `${(peakProminence * 1e3).toExponential(1)}`;
+    document.getElementById('metricWavelet').textContent = `${waveletIndex.toFixed(2)}`;
 
     updateTimeSeriesChart();
     updatePsdChart();
 }
 
 function classifyTremor() {
-    const { peakFreq, tsi, ptr } = state.results;
+    const { peakFreq, tsi, peakProminence, totalPower, jr50, waveletIndex } = state.results;
     let scores = { OT: 0, ET: 0, DT: 0, MY: 0 };
 
-    // Fatores de característica: Estabilidade (baixo TSI) e Pureza (alto PTR)
-    const stabilityFactor = Math.max(0, 1 - tsi * 2); // Pontua mais alto para TSI baixo
-    const purityFactor = ptr;
-
-    // Tremor Essencial (4-12 Hz, estável, puro)
-    if (peakFreq >= 4 && peakFreq <= 12) scores.ET = (1 - Math.abs(peakFreq - 8) / 4) * stabilityFactor * purityFactor;
-    // Tremor Ortostático (13-18 Hz, muito estável, muito puro)
-    if (peakFreq >= 13 && peakFreq <= 18) scores.OT = (1 - Math.abs(peakFreq - 15.5) / 2.5) * Math.pow(stabilityFactor, 2) * Math.pow(purityFactor, 2);
-    // Tremor Distônico (4-9 Hz, instável, impuro)
-    if (peakFreq >= 4 && peakFreq <= 9) scores.DT = (1 - stabilityFactor) * (1 - purityFactor) * 0.5;
-    // Mioclonia (Instável e Impuro, Frequência menos relevante)
-    if ((1-stabilityFactor) > 0.5 && (1-purityFactor) > 0.7) scores.MY = (1 - stabilityFactor) * 0.4;
+    const prominenceFactor = Math.min(1, peakProminence / (totalPower * 0.8 + 1e-9));
+    const stabilityFactor = Math.max(0, 1 - tsi * 2.5);
+    const jerkFactor = Math.min(1, jr50 / (state.sampleRate * 5 + 1e-9));
+    
+    if (peakFreq >= 4 && peakFreq <= 12) {
+        scores.ET = (1 - Math.abs(peakFreq - 8) / 4) * stabilityFactor * prominenceFactor * waveletIndex;
+    }
+    if (peakFreq >= 13 && peakFreq <= 18) {
+        scores.OT = (1 - Math.abs(peakFreq - 15.5) / 2.5) * Math.pow(stabilityFactor, 2) * Math.pow(prominenceFactor, 2) * waveletIndex;
+    }
+    
+    const irregularityScore = (1 - stabilityFactor) + (1 - prominenceFactor) + jerkFactor;
+    if (peakFreq >= 3 && peakFreq <= 9) {
+        scores.DT = irregularityScore * 0.3 * (1 - waveletIndex);
+    }
+    scores.MY = irregularityScore * jerkFactor * 0.5;
     
     const total = Object.values(scores).reduce((a, b) => a + b, 1e-9);
     const container = document.getElementById('classificationContainer');
     container.innerHTML = '';
 
-    // Ordena por pontuação
     const sortedScores = Object.entries(scores).sort(([,a],[,b]) => b-a);
 
     for (const [type, score] of sortedScores) {
         const pct = total > 0 ? (score / total) * 100 : 0;
-        if (pct < 1) continue; // Não mostra classificações com menos de 1%
+        if (pct < 1) continue;
         
         const { label, color } = CLASSIFICATION_TYPES[type];
         const item = document.createElement('div');
@@ -730,14 +778,17 @@ function exportRawCsv() {
 
 function exportMetricsCsv() {
     if (!state.results) return;
-    const { peakFreq, fwhm, ptr, tsi, spectralCentroid, spectralEntropy, sampleRate } = state.results;
+    const { peakFreq, fwhm, tsi, spectralEntropy, sampleRate, rms, jr50, totalPower, peakProminence, waveletIndex } = state.results;
     let csv = 'Metrica,Valor,Unidade\n';
     csv += `Frequência de Pico,${peakFreq.toFixed(4)},Hz\n`;
+    csv += `Amplitude (RMS),${rms.toFixed(4)},m/s^2\n`;
+    csv += `Potência Total,${totalPower.toExponential(4)},\n`;
+    csv += `Proeminência do Pico,${peakProminence.toExponential(4)},\n`;
     csv += `FWHM,${fwhm.toFixed(4)},Hz\n`;
-    csv += `Razão Pico/Total (PTR),${ptr.toFixed(4)},\n`;
     csv += `Índice de Estabilidade (TSI),${tsi.toFixed(4)},\n`;
-    csv += `Centroide Espectral,${spectralCentroid.toFixed(4)},Hz\n`;
     csv += `Entropia Espectral,${spectralEntropy.toFixed(4)},\n`;
+    csv += `Jerk (JR50),${jr50.toFixed(4)},m/s^3\n`;
+    csv += `Índice Wavelet,${waveletIndex.toFixed(4)},\n`;
     csv += `Taxa de Amostragem,${sampleRate.toFixed(4)},Hz\n`;
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -754,7 +805,7 @@ function exportPdf() {
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'mm', 'a4');
-    const { peakFreq, fwhm, ptr, tsi, spectralCentroid, spectralEntropy, times, rawSignal, detrendedSignal, freqs, psd } = state.results;
+    const { peakFreq, fwhm, tsi, spectralEntropy, times, rawSignal, detrendedSignal, freqs, psd, rms, jr50, totalPower, peakProminence, waveletIndex } = state.results;
 
     const margin = 15;
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -768,8 +819,18 @@ function exportPdf() {
     doc.setFont('helvetica', 'bold').setFontSize(14).text('Métricas Principais', margin, currentY);
     currentY += 8;
     doc.setFont('helvetica', 'normal').setFontSize(11);
-    const metricsCol1 = [`Freq. de Pico: ${peakFreq.toFixed(1)} Hz`, `FWHM: ${fwhm.toFixed(2)} Hz`, `Pico/Total (PTR): ${ptr.toFixed(2)}`];
-    const metricsCol2 = [`Estabilidade (TSI): ${tsi.toFixed(2)}`, `Centroide Esp.: ${spectralCentroid.toFixed(1)} Hz`, `Entropia Esp.: ${spectralEntropy.toFixed(2)}`];
+    const metricsCol1 = [
+        `Freq. de Pico: ${peakFreq.toFixed(1)} Hz`,
+        `Amplitude (RMS): ${rms.toFixed(2)}`,
+        `Jerk (JR50): ${jr50.toFixed(1)}`,
+        `FWHM: ${fwhm.toFixed(2)} Hz`,
+    ];
+    const metricsCol2 = [
+        `Potência Total: ${totalPower.toExponential(1)}`,
+        `Proeminência: ${peakProminence.toExponential(1)}`,
+        `Índice Wavelet: ${waveletIndex.toFixed(2)}`,
+        `Estabilidade (TSI): ${tsi.toFixed(2)}`
+    ];
     metricsCol1.forEach((text, i) => doc.text(text, margin, currentY + (i * 7)));
     metricsCol2.forEach((text, i) => doc.text(text, pageWidth / 2 + 5, currentY + (i * 7)));
     currentY += (metricsCol1.length * 7) + 5;
@@ -782,7 +843,7 @@ function exportPdf() {
 
     const generateChartImage = (chart, data, title) => {
         chart.data.datasets[0].data = data;
-        chart.options.animation = false; // Disable animation for sharp export
+        chart.options.animation = false;
         chart.update();
         doc.setFont('helvetica', 'bold').setFontSize(12).text(title, margin, currentY);
         currentY += 6;
@@ -798,19 +859,17 @@ function exportPdf() {
     psdChart.data.labels = freqs;
     generateChartImage(psdChart, psd, '3. Densidade Espectral de Potência (PSD)');
     
-    // Zoomed PSD Chart
     const originalMax = psdChart.options.scales.x.max;
     psdChart.options.scales.x.min = Math.max(0, peakFreq - 3);
     psdChart.options.scales.x.max = peakFreq + 3;
     generateChartImage(psdChart, psd, '4. Zoom no Pico Espectral');
-    psdChart.options.scales.x.min = 0; // Restore original options
+    psdChart.options.scales.x.min = 0;
     psdChart.options.scales.x.max = originalMax;
-    timeChart.options.animation = true; // Re-enable animation
+    timeChart.options.animation = true;
     psdChart.options.animation = true;
-    updateTimeSeriesChart(); // Restore live chart
-    updatePsdChart(); // Restore live chart
+    updateTimeSeriesChart();
+    updatePsdChart();
 
-    // Explanations
     doc.addPage();
     currentY = margin;
     doc.setFont('helvetica', 'bold').setFontSize(14).text('Interpretação e Cálculo das Métricas', margin, currentY);
@@ -827,17 +886,14 @@ function exportPdf() {
         if (currentY > doc.internal.pageSize.getHeight() - 20) { doc.addPage(); currentY = margin; }
     };
 
-    addExplanation('Frequência de Pico (Peak Frequency)', 'É a frequência (em Hertz) onde o espectro de potência do tremor atinge seu valor máximo. Corresponde à taxa de oscilação dominante do tremor. É calculada encontrando o índice de maior valor no vetor de PSD e mapeando-o para o vetor de frequências correspondente.');
-    addExplanation('FWHM (Full Width at Half Maximum)', 'Mede a largura do pico de frequência na metade de sua altura máxima. Um FWHM baixo (pico estreito) indica um tremor rítmico e regular, enquanto um FWHM alto (pico largo) sugere irregularidade. É calculado encontrando as frequências à esquerda e à direita do pico onde a potência cai para 50% do máximo.');
-    addExplanation('Razão Pico/Total (PTR - Peak-to-Total Ratio)', 'Representa a fração da potência total do sinal que está concentrada no pico principal do tremor. Um valor próximo de 1 indica um tremor "puro", com pouca energia em outras frequências. É calculado como (Potência no Pico) / (Soma de toda a Potência no espectro).');
-    addExplanation('Índice de Estabilidade (TSI - Tremor Stability Index)', 'É uma métrica normalizada da estabilidade do pico, útil para comparar a regularidade de tremores com diferentes frequências. Valores baixos (ex: < 0.2) indicam um tremor muito estável. É calculado pela fórmula: FWHM / Frequência de Pico.');
-    addExplanation('Centroide Espectral (Spectral Centroid)', 'Calcula o "centro de massa" do espectro de potência. Indica para qual frequência a potência do sinal está, em média, deslocada. Se o centroide for muito diferente da frequência de pico, sugere a presença de outros componentes de frequência relevantes. É a soma ponderada das frequências pela sua potência, dividida pela potência total.');
-    addExplanation('Entropia Espectral (Spectral Entropy)', 'Mede a complexidade e a imprevisibilidade do sinal no domínio da frequência. Um sinal perfeitamente periódico (como uma senoide pura) tem entropia muito baixa. Um sinal ruidoso e caótico tem alta entropia. É calculada usando a fórmula de entropia de Shannon sobre o espectro de potência normalizado.');
+    addExplanation('Amplitude (RMS - Root Mean Square)', 'Mede a intensidade ou amplitude efetiva do tremor no domínio do tempo. É calculado como a raiz quadrada da média dos quadrados dos valores do sinal de aceleração.');
+    addExplanation('Jerk (JR50)', 'O "jerk" é a derivada da aceleração, medindo a suavidade do movimento. JR50 é a mediana (percentil 50) dos valores de jerk, indicando a "brusquidão" típica do movimento. Valores altos sugerem movimentos irregulares e súbitos.');
+    addExplanation('Potência Total e Proeminência do Pico', 'A Potência Total é a energia total do tremor, calculada somando-se todos os valores da PSD. A Proeminência mede o quão um pico se destaca do "chão" do espectro, indicando a clareza do sinal rítmico em relação ao ruído.');
+    addExplanation('Índice Wavelet', 'Mede a consistência da energia do tremor em sua frequência de pico ao longo do tempo. Um valor próximo de 1 indica que o tremor é estável e contínuo, enquanto valores baixos sugerem um tremor intermitente ou com frequência variável.');
     
-    // Disclaimer
     const disclaimerText = "Atenção: Este relatório é gerado automaticamente e não substitui um diagnóstico médico. Os resultados devem ser interpretados por um profissional de saúde qualificado.";
     const splitDisclaimer = doc.splitTextToSize(disclaimerText, pageWidth - (margin * 2));
-    doc.setFont('helvetica', 'italic').setFontSize(8).text(splitDisclaimer, margin, currentY + 5);
+    doc.setFont('helvetica', 'italic').setFontSize(8).text(splitDisclaimer, margin, doc.internal.pageSize.getHeight() - 20);
 
     doc.save(`Relatorio-TremorPSD-${new Date().toISOString().slice(0,10)}.pdf`);
 }
@@ -850,7 +906,6 @@ function resetApp() {
     document.getElementById('resultsSection').classList.add('hidden');
     document.getElementById('footerActions').classList.add('hidden');
     
-    // Limpa os gráficos
     timeChart.data.labels = [];
     timeChart.data.datasets[0].data = [];
     timeChart.update('none');
