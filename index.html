@@ -1,1920 +1,760 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="dark">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"/>
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="mobile-web-app-capable" content="yes">
-  <title>TremorPSD - Análise Avançada de Tremor</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    
-    :root {
-      --primary: #007AFF;
-      --success: #34C759;
-      --warning: #FF9500;
-      --danger: #FF3B30;
-      --bg: #000000;
-      --surface: #1C1C1E;
-      --surface2: #2C2C2E;
-      --text: #FFFFFF;
-      --text-secondary: #8E8E93;
-      --border: #38383A;
-    }
-    
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      overflow-x: hidden;
-      position: relative;
-      min-height: 100vh;
-      min-height: -webkit-fill-available;
-    }
-    
-    /* Splash Screen / Onboarding */
-    .onboarding {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      z-index: 9999;
-      transition: opacity 0.5s, transform 0.5s;
-      padding: 20px;
-    }
-    
-    .onboarding.hidden {
-      opacity: 0;
-      transform: scale(1.1);
-      pointer-events: none;
-    }
-    
-    .onboarding-icon {
-      width: 120px;
-      height: 120px;
-      background: rgba(255,255,255,0.2);
-      border-radius: 30px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 30px;
-      backdrop-filter: blur(10px);
-    }
-    
-    .onboarding-icon svg {
-      width: 70px;
-      height: 70px;
-      fill: white;
-    }
-    
-    .onboarding h1 {
-      font-size: 32px;
-      font-weight: 700;
-      margin-bottom: 15px;
-      text-align: center;
-    }
-    
-    .onboarding p {
-      font-size: 18px;
-      opacity: 0.9;
-      text-align: center;
-      margin-bottom: 40px;
-      max-width: 300px;
-      line-height: 1.4;
-    }
-    
-    .onboarding-btn {
-      background: white;
-      color: #667eea;
-      border: none;
-      padding: 18px 60px;
-      border-radius: 30px;
-      font-size: 18px;
-      font-weight: 600;
-      cursor: pointer;
-      touch-action: manipulation;
-      transition: transform 0.2s, box-shadow 0.2s;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-    }
-    
-    .onboarding-btn:active {
-      transform: scale(0.95);
-    }
-    
-    .onboarding-steps {
-      position: absolute;
-      bottom: 40px;
-      display: flex;
-      gap: 8px;
-    }
-    
-    .step-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.3);
-      transition: all 0.3s;
-    }
-    
-    .step-dot.active {
-      background: white;
-      width: 24px;
-      border-radius: 4px;
-    }
-    
-    /* Main App */
-    .app-header {
-      background: var(--surface);
-      padding: 20px;
-      border-bottom: 1px solid var(--border);
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-    }
-    
-    .app-title {
-      font-size: 24px;
-      font-weight: 700;
-      margin-bottom: 5px;
-    }
-    
-    .app-subtitle {
-      font-size: 14px;
-      color: var(--text-secondary);
-    }
-    
-    .content {
-      padding: 20px;
-      padding-bottom: 100px;
-    }
-    
-    /* Status Card */
-    .status-card {
-      background: var(--surface);
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 20px;
-      position: relative;
-      overflow: hidden;
-    }
-    
-    .status-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 4px;
-      background: var(--primary);
-      transition: background 0.3s;
-    }
-    
-    .status-card.ready::before { background: var(--success); }
-    .status-card.collecting::before { background: var(--warning); }
-    .status-card.error::before { background: var(--danger); }
-    
-    .status-icon {
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      background: var(--surface2);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 15px;
-      position: relative;
-    }
-    
-    .status-icon.pulse {
-      animation: pulse 2s infinite;
-    }
-    
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.05); opacity: 0.8; }
-    }
-    
-    .status-text {
-      text-align: center;
-      font-size: 16px;
-      margin-bottom: 5px;
-    }
-    
-    .status-detail {
-      text-align: center;
-      font-size: 14px;
-      color: var(--text-secondary);
-    }
-    
-    /* Control Panel */
-    .control-panel {
-      background: var(--surface);
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 20px;
-    }
-    
-    .control-group {
-      margin-bottom: 20px;
-    }
-    
-    .control-label {
-      font-size: 14px;
-      color: var(--text-secondary);
-      margin-bottom: 8px;
-      display: block;
-    }
-    
-    .control-input {
-      width: 100%;
-      padding: 12px 16px;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      color: var(--text);
-      font-size: 16px;
-      -webkit-appearance: none;
-    }
-    
-    .control-select {
-      width: 100%;
-      padding: 12px 16px;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      color: var(--text);
-      font-size: 16px;
-      -webkit-appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238E8E93' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 16px center;
-      padding-right: 40px;
-    }
-    
-    /* Advanced Controls */
-    .advanced-controls {
-      margin-top: 15px;
-      padding-top: 15px;
-      border-top: 1px solid var(--border);
-    }
-    
-    .control-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-    }
-    
-    /* Action Button */
-    .action-btn {
-      width: 100%;
-      padding: 18px;
-      background: var(--primary);
-      color: white;
-      border: none;
-      border-radius: 14px;
-      font-size: 18px;
-      font-weight: 600;
-      cursor: pointer;
-      touch-action: manipulation;
-      transition: all 0.2s;
-      position: relative;
-      overflow: hidden;
-    }
-    
-    .action-btn:active {
-      transform: scale(0.98);
-    }
-    
-    .action-btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    
-    .action-btn.collecting {
-      background: var(--warning);
-    }
-    
-    .action-btn.success {
-      background: var(--success);
-    }
-    
-    .action-btn-progress {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      height: 4px;
-      background: rgba(255,255,255,0.3);
-      transition: width linear;
-    }
-    
-    /* Results Section */
-    .results {
-      background: var(--surface);
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 20px;
-    }
-    
-    .results-title {
-      font-size: 18px;
-      font-weight: 600;
-      margin-bottom: 15px;
-    }
-    
-    .chart-container {
-      width: 100%;
-      height: 200px;
-      background: var(--surface2);
-      border-radius: 12px;
-      margin-bottom: 15px;
-      position: relative;
-    }
-    
-    canvas {
-      width: 100%;
-      height: 100%;
-      border-radius: 12px;
-    }
-    
-    .metrics-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-      margin-top: 15px;
-    }
-    
-    .metrics-grid.extended {
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    }
-    
-    .metric-card {
-      background: var(--surface2);
-      padding: 12px;
-      border-radius: 12px;
-    }
-    
-    .metric-label {
-      font-size: 12px;
-      color: var(--text-secondary);
-      margin-bottom: 4px;
-    }
-    
-    .metric-value {
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--primary);
-    }
-    
-    .metric-value.large {
-      font-size: 20px;
-    }
-    
-    /* Methodology Info */
-    .methodology {
-      background: var(--surface);
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 20px;
-    }
-    
-    .methodology-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 15px;
-    }
-    
-    .methodology-toggle {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 8px 12px;
-      border-radius: 8px;
-      font-size: 12px;
-      cursor: pointer;
-    }
-    
-    .methodology-content {
-      display: none;
-      font-size: 14px;
-      line-height: 1.5;
-      color: var(--text-secondary);
-    }
-    
-    .methodology-content.visible {
-      display: block;
-    }
-    
-    .methodology-step {
-      margin-bottom: 15px;
-      padding: 12px;
-      background: var(--surface2);
-      border-radius: 8px;
-    }
-    
-    .methodology-step h4 {
-      color: var(--text);
-      margin-bottom: 5px;
-      font-size: 14px;
-    }
-    
-    /* Classification */
-    .classification {
-      background: var(--surface);
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 20px;
-    }
-    
-    .classification-item {
-      display: flex;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-    
-    .classification-label {
-      flex: 0 0 100px;
-      font-size: 14px;
-    }
-    
-    .classification-bar {
-      flex: 1;
-      height: 8px;
-      background: var(--surface2);
-      border-radius: 4px;
-      overflow: hidden;
-      margin: 0 10px;
-    }
-    
-    .classification-fill {
-      height: 100%;
-      background: var(--primary);
-      transition: width 0.5s ease;
-      border-radius: 4px;
-    }
-    
-    .classification-percent {
-      flex: 0 0 50px;
-      text-align: right;
-      font-size: 14px;
-      font-weight: 600;
-    }
-    
-    .classification-explanation {
-      margin-top: 15px;
-      padding: 12px;
-      background: var(--surface2);
-      border-radius: 8px;
-      font-size: 13px;
-      color: var(--text-secondary);
-      line-height: 1.4;
-    }
-    
-    /* Footer Actions */
-    .footer-actions {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: var(--surface);
-      border-top: 1px solid var(--border);
-      padding: 15px 20px;
-      padding-bottom: calc(15px + env(safe-area-inset-bottom));
-      display: flex;
-      gap: 10px;
-    }
-    
-    .footer-btn {
-      flex: 1;
-      padding: 12px;
-      background: var(--surface2);
-      color: var(--text);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      touch-action: manipulation;
-    }
-    
-    /* Loading Spinner */
-    .spinner {
-      width: 40px;
-      height: 40px;
-      border: 3px solid var(--surface2);
-      border-top-color: var(--primary);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-    
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    
-    /* Responsive */
-    @media (max-width: 375px) {
-      .app-title { font-size: 20px; }
-      .metrics-grid { grid-template-columns: 1fr; }
-      .control-row { grid-template-columns: 1fr; }
-    }
-    
-    /* Hidden class */
-    .hidden { display: none !important; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>TremorPSD - Análise Aprimorada</title>
+    
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Estilos base e customizações */
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        /* Animação de pulso para o ícone */
+        @keyframes pulse-glow {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+            }
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 0 20px 10px rgba(59, 130, 246, 0);
+            }
+        }
+        .pulse-glow-animation {
+            animation: pulse-glow 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+        }
+    </style>
 </head>
-<body>
-  <!-- Onboarding Screen -->
-  <div class="onboarding" id="onboarding">
-    <div class="onboarding-icon">
-      <svg viewBox="0 0 24 24">
-        <path d="M13.5,5.5C14.59,5.5 15.5,4.58 15.5,3.5C15.5,2.38 14.59,1.5 13.5,1.5C12.39,1.5 11.5,2.38 11.5,3.5C11.5,4.58 12.39,5.5 13.5,5.5M9.89,19.38L10.89,15L13,17V23H15V15.5L12.89,13.5L13.5,10.5C14.79,12 16.79,13 19,13V11C17.09,11 15.5,10 14.69,8.58L13.69,7C13.29,6.38 12.69,6 12,6C11.69,6 11.5,6.08 11.19,6.08L6,8.28V13H8V9.58L9.79,8.88L8.19,17L3.29,16L2.89,18L9.89,19.38Z"/>
-      </svg>
+<body class="bg-gray-900 text-white antialiased min-h-screen">
+
+    <!-- Onboarding Screen -->
+    <div id="onboarding" class="fixed inset-0 bg-gradient-to-br from-indigo-600 to-purple-700 flex flex-col justify-center items-center p-6 z-50 transition-opacity duration-500">
+        <div class="bg-white/20 backdrop-blur-lg p-6 rounded-3xl mb-8">
+            <svg class="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+        </div>
+        <h1 class="text-4xl font-bold mb-4 text-center">Bem-vindo ao TremorPSD</h1>
+        <p class="text-lg text-white/80 text-center max-w-sm mb-10">Analise tremores de forma precisa usando os sensores do seu dispositivo. Posicione o aparelho na mão ou membro a ser avaliado e siga as instruções.</p>
+        <button onclick="startOnboarding()" class="bg-white text-indigo-600 font-semibold text-lg py-4 px-12 rounded-full shadow-2xl transform hover:scale-105 active:scale-95 transition-transform duration-200">
+            Começar Análise
+        </button>
     </div>
-    <h1>TremorPSD</h1>
-    <p>Análise profissional de tremor usando metodologia de processamento de sinais avançada</p>
-    <button class="onboarding-btn" onclick="startOnboarding()">Começar Análise</button>
-    <div class="onboarding-steps">
-      <span class="step-dot active"></span>
-      <span class="step-dot"></span>
-      <span class="step-dot"></span>
+
+    <!-- Main App Container -->
+    <div id="app" class="opacity-0 transition-opacity duration-500">
+        <header class="bg-gray-900/70 backdrop-blur-lg sticky top-0 z-40 border-b border-gray-700/50 p-4">
+            <div class="max-w-4xl mx-auto">
+                <h1 class="text-xl font-bold">TremorPSD</h1>
+                <p class="text-sm text-gray-400">Análise de Tremor por Densidade Espectral de Potência</p>
+            </div>
+        </header>
+
+        <main class="p-4 max-w-4xl mx-auto pb-24">
+            <!-- Status & Control Section -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <!-- Status Card -->
+                <div id="statusCard" class="bg-gray-800 rounded-2xl p-6 border-t-4 border-blue-500 transition-all duration-300">
+                    <div class="flex items-center space-x-4">
+                        <div id="statusIconContainer" class="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0">
+                            <div id="spinner" class="w-8 h-8 border-4 border-gray-600 border-t-blue-500 rounded-full animate-spin"></div>
+                            <svg id="iconReady" class="hidden w-10 h-10 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        </div>
+                        <div>
+                            <p id="statusText" class="text-lg font-semibold">Preparando sensores...</p>
+                            <p id="statusDetail" class="text-sm text-gray-400">Aguarde a inicialização</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Control Panel -->
+                <div class="bg-gray-800 rounded-2xl p-6">
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label for="duration" class="text-sm text-gray-400 block mb-1">Duração (s)</label>
+                            <input type="number" id="duration" value="20" min="5" max="60" class="w-full bg-gray-700 text-white rounded-lg p-2 border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label for="axis" class="text-sm text-gray-400 block mb-1">Eixo do Sinal</label>
+                            <select id="axis" class="w-full bg-gray-700 text-white rounded-lg p-2 border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                <option value="mag">Magnitude</option>
+                                <option value="x">Eixo X</option>
+                                <option value="y">Eixo Y</option>
+                                <option value="z">Eixo Z</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button id="actionBtn" onclick="handleAction()" disabled class="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700 active:bg-blue-800 relative overflow-hidden">
+                        <span id="actionText">Aguardando Sensores</span>
+                        <div id="progressBar" class="absolute bottom-0 left-0 h-1 bg-white/30" style="width: 0%;"></div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Results Section (Initially Hidden) -->
+            <div id="resultsSection" class="hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold">Resultados da Análise</h2>
+                     <button onclick="showInfoModal()" class="text-blue-400 hover:text-blue-300 flex items-center space-x-1">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span>O que isso significa?</span>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <!-- Metrics Grid -->
+                    <div class="bg-gray-800 rounded-2xl p-6">
+                        <h3 class="font-semibold mb-4 text-lg">Métricas Principais</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-gray-700/50 p-4 rounded-lg">
+                                <p class="text-sm text-gray-400">Frequência de Pico</p>
+                                <p id="metricFreq" class="text-2xl font-bold text-blue-400">— Hz</p>
+                            </div>
+                            <div class="bg-gray-700/50 p-4 rounded-lg">
+                                <p class="text-sm text-gray-400">Potência de Pico</p>
+                                <p id="metricPower" class="text-2xl font-bold text-green-400">—</p>
+                            </div>
+                            <div class="bg-gray-700/50 p-4 rounded-lg">
+                                <p class="text-sm text-gray-400">Largura Espectral</p>
+                                <p id="metricWidth" class="text-2xl font-bold text-yellow-400">— Hz</p>
+                            </div>
+                             <div class="bg-gray-700/50 p-4 rounded-lg">
+                                <p class="text-sm text-gray-400">Taxa de Amostra</p>
+                                <p id="metricRate" class="text-2xl font-bold text-gray-300">— Hz</p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Classification -->
+                    <div class="bg-gray-800 rounded-2xl p-6">
+                        <h3 class="font-semibold mb-4 text-lg">Classificação Sugerida</h3>
+                        <div class="space-y-3" id="classificationContainer">
+                            <!-- Items inserted by JS -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Charts Section -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-gray-800 rounded-2xl p-4">
+                        <h3 class="font-semibold mb-2 text-center text-gray-300">Sinal no Tempo</h3>
+                        <canvas id="chartTime"></canvas>
+                    </div>
+                    <div class="bg-gray-800 rounded-2xl p-4">
+                        <h3 class="font-semibold mb-2 text-center text-gray-300">Densidade Espectral de Potência (PSD)</h3>
+                        <canvas id="chartPSD"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Footer Actions -->
+        <footer id="footerActions" class="hidden fixed bottom-0 left-0 right-0 bg-gray-800/80 backdrop-blur-lg border-t border-gray-700 p-4">
+            <div class="max-w-4xl mx-auto flex space-x-4">
+                <button onclick="exportData()" class="w-full bg-gray-600 text-white font-semibold py-3 rounded-lg hover:bg-gray-700 transition-colors">Exportar CSV</button>
+                <button onclick="resetApp()" class="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors">Nova Análise</button>
+            </div>
+        </footer>
     </div>
-  </div>
-  
-  <!-- Main App -->
-  <div class="app-header">
-    <div class="app-title">TremorPSD</div>
-    <div class="app-subtitle">Análise Avançada por Acelerometria & Welch PSD</div>
-  </div>
-  
-  <div class="content">
-    <!-- Status Card -->
-    <div class="status-card" id="statusCard">
-      <div class="status-icon" id="statusIcon">
-        <div class="spinner" id="spinner"></div>
-        <svg id="iconReady" class="hidden" width="30" height="30" viewBox="0 0 24 24" fill="var(--success)">
-          <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
-        </svg>
-      </div>
-      <div class="status-text" id="statusText">Preparando sensores...</div>
-      <div class="status-detail" id="statusDetail">Aguarde um momento</div>
+
+    <!-- Info Modal -->
+    <div id="infoModal" class="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 hidden" onclick="hideInfoModal(event)">
+        <div class="bg-gray-800 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6" id="infoModalContent">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold">Entendendo os Resultados</h2>
+                <button onclick="hideInfoModal()" class="text-gray-400 hover:text-white">&times;</button>
+            </div>
+            <div class="prose prose-invert prose-sm md:prose-base text-gray-300 space-y-4">
+                <p>Esta análise transforma o sinal do acelerômetro (tremor) em um gráfico que mostra quais frequências são mais intensas. Isso é chamado de <strong>Densidade Espectral de Potência (PSD)</strong>.</p>
+                <div>
+                    <h4 class="font-semibold text-white">Frequência de Pico (Hz)</h4>
+                    <p>É a frequência onde o tremor é mais forte. Diferentes condições médicas tendem a ter tremores em faixas de frequência características (ex: Tremor Essencial tipicamente entre 4-12 Hz).</p>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-white">Potência de Pico ((m/s²)²/Hz)</h4>
+                    <p>Mede a intensidade ou "energia" do tremor na frequência de pico. Um valor mais alto sugere um tremor de maior amplitude.</p>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-white">Largura Espectral (Hz)</h4>
+                    <p>Indica a regularidade do tremor. Um valor baixo (pico "fino") significa que o tremor é muito rítmico e regular. Um valor alto (pico "largo") sugere um tremor mais irregular.</p>
+                </div>
+                 <div>
+                    <h4 class="font-semibold text-white">Classificação Sugerida</h4>
+                    <p>Com base nas características encontradas, o sistema oferece uma sugestão de classificação. <strong>Isto não é um diagnóstico</strong> e deve ser interpretado por um profissional de saúde qualificado.</p>
+                </div>
+                 <p class="text-xs text-gray-500 pt-4 border-t border-gray-700">A análise é feita usando o Método de Welch para calcular a PSD, uma técnica robusta para análise de sinais biológicos.</p>
+            </div>
+        </div>
     </div>
-    
-    <!-- Control Panel -->
-    <div class="control-panel">
-      <div class="control-group">
-        <label class="control-label">Duração da coleta (segundos)</label>
-        <input type="number" class="control-input" id="duration" value="20" min="10" max="60">
-      </div>
-      
-      <div class="control-group">
-        <label class="control-label">Componente do sinal</label>
-        <select class="control-select" id="axis">
-          <option value="mag">Magnitude total (√x²+y²+z²)</option>
-          <option value="dominant">Eixo dominante (auto)</option>
-          <option value="x">Apenas eixo X</option>
-          <option value="y">Apenas eixo Y</option>
-          <option value="z">Apenas eixo Z</option>
-        </select>
-      </div>
-      
-      <div class="advanced-controls">
-        <div class="control-row">
-          <div class="control-group">
-            <label class="control-label">Filtro passa-baixa (Hz)</label>
-            <input type="number" class="control-input" id="highCut" value="20" min="15" max="50" step="1">
-          </div>
-          <div class="control-group">
-            <label class="control-label">Filtro passa-alta (Hz)</label>
-            <input type="number" class="control-input" id="lowCut" value="3" min="1" max="5" step="0.5">
-          </div>
-        </div>
-        <div class="control-row">
-          <div class="control-group">
-            <label class="control-label">Tamanho do segmento (s)</label>
-            <input type="number" class="control-input" id="segmentLength" value="4" min="2" max="8" step="1">
-          </div>
-          <div class="control-group">
-            <label class="control-label">Sobreposição (%)</label>
-            <input type="number" class="control-input" id="overlap" value="50" min="0" max="75" step="25">
-          </div>
-        </div>
-      </div>
-      
-      <button class="action-btn" id="actionBtn" onclick="handleAction()" disabled>
-        <span id="actionText">Preparando...</span>
-        <div class="action-btn-progress" id="progressBar"></div>
-      </button>
-    </div>
-    
-    <!-- Methodology Section -->
-    <div class="methodology">
-      <div class="methodology-header">
-        <div class="results-title">Metodologia de Processamento</div>
-        <button class="methodology-toggle" onclick="toggleMethodology()">Mostrar</button>
-      </div>
-      <div class="methodology-content" id="methodologyContent">
-        <div class="methodology-step">
-          <h4>1. Aquisição</h4>
-          <p>Aceleração tri-axial bruta (g), estimativa contínua da taxa de amostragem (Hz), seleção do componente.</p>
-        </div>
-        <div class="methodology-step">
-          <h4>2. Pré-processamento</h4>
-          <p>Remoção do componente DC (detrend), filtragem passa-faixa 3–20 Hz (IIR 1ª ordem).</p>
-        </div>
-        <div class="methodology-step">
-          <h4>3. Análise Espectral (Welch PSD)</h4>
-          <p>Janela de Hanning, segmentos de 4s × fs, sobreposição 50%, PSD = |FFT|² / (fs × N), média entre segmentos.</p>
-        </div>
-        <div class="methodology-step">
-          <h4>4. Métricas</h4>
-          <p>Frequência de pico, FWHM, entropia espectral, razão pico/total (PTR), índice de estabilidade (TSI), centroide espectral.</p>
-        </div>
-        <div class="methodology-step">
-          <h4>5. Classificação</h4>
-          <p>Regras baseadas em frequência, seletividade, concentração de potência e irregularidade espectral.</p>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Results Section (Initially Hidden) -->
-    <div class="results hidden" id="resultsSection">
-      <div class="results-title">Análise Espectral (Welch PSD)</div>
-      
-      <div class="chart-container">
-        <canvas id="chartTime"></canvas>
-      </div>
-      
-      <div class="chart-container">
-        <canvas id="chartPSD"></canvas>
-      </div>
-      
-      <div class="metrics-grid extended">
-        <div class="metric-card">
-          <div class="metric-label">Freq. pico (Hz)</div>
-          <div class="metric-value large" id="metricFreq">—</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">FWHM (Hz)</div>
-          <div class="metric-value" id="metricFWHM">—</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">Entropia</div>
-          <div class="metric-value" id="metricEntropy">—</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">PTR</div>
-          <div class="metric-value" id="metricPTR">—</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">TSI</div>
-          <div class="metric-value" id="metricTSI">—</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">Centroide (Hz)</div>
-          <div class="metric-value" id="metricCentroid">—</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">Taxa (Hz)</div>
-          <div class="metric-value" id="metricRate">—</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">Segmentos</div>
-          <div class="metric-value" id="metricSegments">—</div>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Classification (Initially Hidden) -->
-    <div class="classification hidden" id="classificationSection">
-      <div class="results-title">Classificação Diferencial</div>
-      
-      <div class="classification-item">
-        <span class="classification-label">Ortostático</span>
-        <div class="classification-bar">
-          <div class="classification-fill" id="barOT" style="width: 0%"></div>
-        </div>
-        <span class="classification-percent" id="pctOT">0%</span>
-      </div>
-      
-      <div class="classification-item">
-        <span class="classification-label">Essencial</span>
-        <div class="classification-bar">
-          <div class="classification-fill" id="barET" style="width: 0%"></div>
-        </div>
-        <span class="classification-percent" id="pctET">0%</span>
-      </div>
-      
-      <div class="classification-item">
-        <span class="classification-label">Distônico</span>
-        <div class="classification-bar">
-          <div class="classification-fill" id="barDT" style="width: 0%"></div>
-        </div>
-        <span class="classification-percent" id="pctDT">0%</span>
-      </div>
-      
-      <div class="classification-item">
-        <span class="classification-label">Mioclonia</span>
-        <div class="classification-bar">
-          <div class="classification-fill" id="barMY" style="width: 0%"></div>
-        </div>
-        <span class="classification-percent" id="pctMY">0%</span>
-      </div>
-      
-      <div class="classification-explanation" id="classificationExplanation">
-        Análise baseada em frequência de pico, largura espectral, entropia e estabilidade do sinal.
-      </div>
-    </div>
-  </div>
-  
-  <!-- Footer Actions -->
-  <div class="footer-actions hidden" id="footerActions">
-    <button class="footer-btn" onclick="exportData()">Exportar CSV</button>
-    <button class="footer-btn" onclick="exportReport()">Relatório</button>
-    <button class="footer-btn" onclick="resetApp()">Nova Análise</button>
-  </div>
+
 
 <script>
-// Global state
-let state = {
-  onboarded: false,
-  sensorReady: false,
-  collecting: false,
-  data: [],
-  rawData: [],
-  results: null,
-  mode: 'mag',
-  startTime: null,
-  sampleRate: 0,
-  eventCount: 0,
-  processingParams: {
-    lowCut: 3,
-    highCut: 20,
-    segmentLength: 4,
-    overlap: 50
-  }
+// --- GLOBAL STATE & CONFIG ---
+const state = {
+    sensorReady: false,
+    collecting: false,
+    data: [],
+    results: null,
+    sampleRate: 0,
+    eventCount: 0,
+    startTime: null,
 };
 
-// Check for HTTPS or secure context
-function isSecureContext() {
-  return location.protocol === 'https:' || 
-         location.hostname === 'localhost' || 
-         location.hostname === '127.0.0.1' ||
-         location.hostname.includes('.local');
-}
+let timeChart, psdChart;
 
-// Digital filter implementations
-class DigitalFilter {
-  // Simple IIR high-pass filter (1st order)
-  static highpass(data, cutoff, sampleRate) {
-    const RC = 1.0 / (cutoff * 2 * Math.PI);
-    const dt = 1.0 / sampleRate;
-    const alpha = RC / (RC + dt);
-    
-    const filtered = new Array(data.length);
-    filtered[0] = data[0];
-    
-    for (let i = 1; i < data.length; i++) {
-      filtered[i] = alpha * (filtered[i-1] + data[i] - data[i-1]);
-    }
-    
-    return filtered;
-  }
-  
-  // Simple IIR low-pass filter (1st order)
-  static lowpass(data, cutoff, sampleRate) {
-    const RC = 1.0 / (cutoff * 2 * Math.PI);
-    const dt = 1.0 / sampleRate;
-    const alpha = dt / (RC + dt);
-    
-    const filtered = new Array(data.length);
-    filtered[0] = data[0];
-    
-    for (let i = 1; i < data.length; i++) {
-      filtered[i] = filtered[i-1] + alpha * (data[i] - filtered[i-1]);
-    }
-    
-    return filtered;
-  }
-  
-  // Band-pass filter (high-pass then low-pass)
-  static bandpass(data, lowCut, highCut, sampleRate) {
-    let filtered = this.highpass(data, lowCut, sampleRate);
-    filtered = this.lowpass(filtered, highCut, sampleRate);
-    return filtered;
-  }
-}
+const CLASSIFICATION_TYPES = {
+    OT: { label: 'Ortostático', color: '#FBBF24' }, // amber-400
+    ET: { label: 'Essencial', color: '#34D399' }, // emerald-400
+    DT: { label: 'Distônico', color: '#F87171' }, // red-400
+    MY: { label: 'Mioclonia', color: '#60A5FA' }, // blue-400
+};
 
-// Windowing functions
-class WindowFunctions {
-  static hanning(N) {
-    const window = new Array(N);
-    for (let n = 0; n < N; n++) {
-      window[n] = 0.5 * (1 - Math.cos(2 * Math.PI * n / (N - 1)));
-    }
-    return window;
-  }
-}
 
-// Enhanced FFT implementation with better accuracy
-class FFT {
-  // Cooley-Tukey FFT algorithm
-  static fft(signal) {
-    const N = signal.length;
-    if (N <= 1) return signal.map(x => ({ real: x, imag: 0 }));
-    
-    // Ensure power of 2
-    const nextPow2 = Math.pow(2, Math.ceil(Math.log2(N)));
-    const padded = new Array(nextPow2);
-    for (let i = 0; i < nextPow2; i++) {
-      padded[i] = i < N ? signal[i] : 0;
-    }
-    
-    return this._fftRecursive(padded);
-  }
-  
-  static _fftRecursive(x) {
-    const N = x.length;
-    if (N <= 1) return x.map(val => ({ real: val, imag: 0 }));
-    
-    // Divide
-    const even = new Array(N/2);
-    const odd = new Array(N/2);
-    for (let i = 0; i < N/2; i++) {
-      even[i] = x[2*i];
-      odd[i] = x[2*i + 1];
-    }
-    
-    // Conquer
-    const evenFFT = this._fftRecursive(even);
-    const oddFFT = this._fftRecursive(odd);
-    
-    // Combine
-    const result = new Array(N);
-    for (let k = 0; k < N/2; k++) {
-      const t = {
-        real: Math.cos(-2 * Math.PI * k / N) * oddFFT[k].real - Math.sin(-2 * Math.PI * k / N) * oddFFT[k].imag,
-        imag: Math.sin(-2 * Math.PI * k / N) * oddFFT[k].real + Math.cos(-2 * Math.PI * k / N) * oddFFT[k].imag
-      };
-      
-      result[k] = {
-        real: evenFFT[k].real + t.real,
-        imag: evenFFT[k].imag + t.imag
-      };
-      
-      result[k + N/2] = {
-        real: evenFFT[k].real - t.real,
-        imag: evenFFT[k].imag - t.imag
-      };
-    }
-    
-    return result;
-  }
-  
-  // Compute power spectral density
-  static computePSD(signal, sampleRate) {
-    const fftResult = this.fft(signal);
-    const N = fftResult.length;
-    
-    // Compute power spectrum
-    const power = new Array(N/2);
-    for (let i = 0; i < N/2; i++) {
-      power[i] = (fftResult[i].real * fftResult[i].real + fftResult[i].imag * fftResult[i].imag) / (sampleRate * N);
-    }
-    
-    // Create frequency array
-    const freqs = new Array(N/2);
-    for (let i = 0; i < N/2; i++) {
-      freqs[i] = i * sampleRate / N;
-    }
-    
-    return { freqs, power };
-  }
-}
-
-// Welch's method for PSD estimation
-class WelchPSD {
-  static compute(signal, sampleRate, segmentLength, overlap = 0.5) {
-    const segmentSamples = Math.floor(segmentLength * sampleRate);
-    const stepSize = Math.floor(segmentSamples * (1 - overlap));
-    const window = WindowFunctions.hanning(segmentSamples);
-    
-    // Calculate window power for normalization
-    const windowPower = window.reduce((sum, w) => sum + w * w, 0);
-    
-    let sumPSD = null;
-    let numSegments = 0;
-    
-    // Process each segment
-    for (let start = 0; start + segmentSamples <= signal.length; start += stepSize) {
-      // Extract and window segment
-      const segment = new Array(segmentSamples);
-      for (let i = 0; i < segmentSamples; i++) {
-        segment[i] = signal[start + i] * window[i];
-      }
-      
-      // Compute PSD for this segment
-      const { freqs, power } = FFT.computePSD(segment, sampleRate);
-      
-      // Normalize by window power
-      const normalizedPower = power.map(p => p / windowPower);
-      
-      // Accumulate
-      if (sumPSD === null) {
-        sumPSD = normalizedPower.slice();
-      } else {
-        for (let i = 0; i < sumPSD.length; i++) {
-          sumPSD[i] += normalizedPower[i];
-        }
-      }
-      
-      numSegments++;
-    }
-    
-    // Average across segments
-    if (numSegments > 0) {
-      for (let i = 0; i < sumPSD.length; i++) {
-        sumPSD[i] /= numSegments;
-      }
-    }
-    
-    // Generate frequency array (same for all segments)
-    const freqs = new Array(sumPSD.length);
-    for (let i = 0; i < freqs.length; i++) {
-      freqs[i] = i * sampleRate / (2 * segmentSamples);
-    }
-    
-    return { freqs, power: sumPSD, numSegments };
-  }
-}
-
-// Advanced metrics calculation
-class TremorMetrics {
-  static calculate(freqs, power, diagBandMin = 3, diagBandMax = 20) {
-    // Find diagnostic band indices
-    const diagStartIdx = freqs.findIndex(f => f >= diagBandMin);
-    const diagEndIdx = freqs.findIndex(f => f > diagBandMax);
-    const diagBandEnd = diagEndIdx === -1 ? freqs.length : diagEndIdx;
-    
-    // Find peak frequency in diagnostic band
-    let peakIdx = diagStartIdx;
-    let peakValue = power[diagStartIdx];
-    for (let i = diagStartIdx; i < diagBandEnd; i++) {
-      if (power[i] > peakValue) {
-        peakValue = power[i];
-        peakIdx = i;
-      }
-    }
-    
-    const peakFreq = freqs[peakIdx];
-    
-    // Calculate FWHM (Full Width at Half Maximum)
-    const halfMax = peakValue / 2;
-    let leftIdx = peakIdx;
-    let rightIdx = peakIdx;
-    
-    while (leftIdx > diagStartIdx && power[leftIdx] > halfMax) leftIdx--;
-    while (rightIdx < diagBandEnd - 1 && power[rightIdx] > halfMax) rightIdx++;
-    
-    const fwhm = freqs[rightIdx] - freqs[leftIdx];
-    
-    // Calculate total power and peak-to-total ratio (PTR)
-    const totalPower = power.slice(diagStartIdx, diagBandEnd).reduce((sum, p) => sum + p, 0);
-    const ptr = peakValue / totalPower;
-    
-    // Calculate spectral entropy
-    const normalizedPower = power.slice(diagStartIdx, diagBandEnd).map(p => p / totalPower);
-    let entropy = 0;
-    for (const p of normalizedPower) {
-      if (p > 0) {
-        entropy -= p * Math.log2(p);
-      }
-    }
-    
-    // Calculate Tremor Stability Index (TSI)
-    const tsi = fwhm / peakFreq;
-    
-    // Calculate spectral centroid
-    let weightedSum = 0;
-    let powerSum = 0;
-    for (let i = diagStartIdx; i < diagBandEnd; i++) {
-      weightedSum += freqs[i] * power[i];
-      powerSum += power[i];
-    }
-    const centroid = weightedSum / powerSum;
-    
-    return {
-      peakFreq,
-      peakValue,
-      fwhm,
-      entropy,
-      ptr,
-      tsi,
-      centroid,
-      totalPower
-    };
-  }
-}
-
-// Enhanced classification system
-class TremorClassification {
-  static classify(metrics) {
-    const { peakFreq, fwhm, entropy, ptr, tsi } = metrics;
-    
-    let scores = {
-      OT: 0,  // Orthostatic tremor
-      ET: 0,  // Essential tremor  
-      DT: 0,  // Dystonic tremor
-      MY: 0   // Myoclonus
-    };
-    
-    let explanation = "";
-    
-    // Orthostatic tremor: 13-18 Hz, narrow peak, high PTR
-    if (peakFreq >= 13 && peakFreq <= 18) {
-      scores.OT = 0.7;
-      if (fwhm < 2.0) scores.OT += 0.2;
-      if (ptr > 0.3) scores.OT += 0.1;
-      explanation += "Frequência alta (13-18 Hz) sugere tremor ortostático. ";
-    }
-    
-    // Essential tremor: 4-12 Hz, moderate selectivity
-    if (peakFreq >= 4 && peakFreq <= 12) {
-      scores.ET = 0.6 + (12 - Math.abs(peakFreq - 7)) * 0.05;
-      if (fwhm >= 1.0 && fwhm <= 3.0) scores.ET += 0.2;
-      if (ptr > 0.2) scores.ET += 0.1;
-      explanation += "Frequência típica (4-12 Hz) do tremor essencial. ";
-    }
-    
-    // Dystonic tremor: 4-7 Hz, irregular, broader spectrum
-    if (peakFreq >= 4 && peakFreq <= 7) {
-      scores.DT = 0.5;
-      if (fwhm > 2.5) scores.DT += 0.2;
-      if (entropy > 3.0) scores.DT += 0.2;
-      if (tsi > 0.4) scores.DT += 0.1;
-      explanation += "Espectro amplo e irregular sugere tremor distônico. ";
-    }
-    
-    // Myoclonus: broad spectrum, high entropy, low PTR
-    if (entropy > 4.0 || (fwhm > 4.0 && ptr < 0.15)) {
-      scores.MY = 0.6;
-      if (entropy > 5.0) scores.MY += 0.2;
-      if (ptr < 0.1) scores.MY += 0.2;
-      explanation += "Alta entropia espectral sugere mioclonia. ";
-    }
-    
-    // Confidence adjustments based on signal quality
-    if (ptr < 0.05) {
-      explanation += "Baixa razão pico/total indica sinal pouco específico. ";
-      Object.keys(scores).forEach(key => scores[key] *= 0.7);
-    }
-    
-    if (entropy < 1.0) {
-      explanation += "Baixa entropia indica pico bem definido. ";
-    }
-    
-    // Normalize scores
-    const total = Math.max(0.001, Object.values(scores).reduce((a, b) => a + b, 0));
-    Object.keys(scores).forEach(key => scores[key] = (scores[key] / total) * 100);
-    
-    return { scores, explanation };
-  }
-}
-
-// Onboarding flow
-async function startOnboarding() {
-  const onboardingEl = document.getElementById('onboarding');
-  
-  // Check secure context first
-  if (!isSecureContext()) {
-    onboardingEl.querySelector('p').textContent = 'Por favor, acesse via HTTPS para usar os sensores';
-    onboardingEl.querySelector('.onboarding-btn').textContent = 'Entendido';
-    onboardingEl.querySelector('.onboarding-btn').onclick = () => {
-      alert('Hospede este arquivo em HTTPS (GitHub Pages, Netlify, etc) para funcionar corretamente.');
-    };
-    return;
-  }
-  
-  // Auto-request permission
-  await requestSensorPermission();
-  
-  // Hide onboarding
-  setTimeout(() => {
-    onboardingEl.classList.add('hidden');
-    state.onboarded = true;
-    initializeApp();
-  }, 500);
-}
-
-// Request sensor permission with multiple fallback strategies
-async function requestSensorPermission() {
-  try {
-    // Strategy 1: iOS 13+ DeviceMotionEvent
-    if (typeof DeviceMotionEvent !== 'undefined' && 
-        typeof DeviceMotionEvent.requestPermission === 'function') {
-      const response = await DeviceMotionEvent.requestPermission();
-      if (response === 'granted') {
-        state.sensorReady = true;
-        return true;
-      }
-    }
-    
-    // Strategy 2: Android/Desktop - sensors usually work directly
-    if (window.DeviceMotionEvent) {
-      state.sensorReady = true;
-      return true;
-    }
-    
-    // Strategy 3: Generic Accelerometer API (newer devices)
-    if ('Accelerometer' in window) {
-      try {
-        const sensor = new Accelerometer({ frequency: 60 });
-        await sensor.start();
-        sensor.stop();
-        state.sensorReady = true;
-        return true;
-      } catch(e) {
-        console.log('Accelerometer API not available');
-      }
-    }
-    
-  } catch(error) {
-    console.error('Sensor permission error:', error);
-  }
-  
-  return false;
-}
-
-// Initialize main app
-function initializeApp() {
-  const statusCard = document.getElementById('statusCard');
-  const statusText = document.getElementById('statusText');
-  const statusDetail = document.getElementById('statusDetail');
-  const actionBtn = document.getElementById('actionBtn');
-  const actionText = document.getElementById('actionText');
-  const spinner = document.getElementById('spinner');
-  const iconReady = document.getElementById('iconReady');
-  
-  // Setup event listeners
-  setupMotionListener();
-  
-  // Check sensor availability
-  setTimeout(() => {
-    if (state.eventCount > 0) {
-      statusCard.classList.add('ready');
-      spinner.classList.add('hidden');
-      iconReady.classList.remove('hidden');
-      statusText.textContent = 'Pronto para análise';
-      statusDetail.textContent = `Taxa: ${state.sampleRate.toFixed(0)} Hz`;
-      actionBtn.disabled = false;
-      actionText.textContent = 'Iniciar Coleta';
-      document.getElementById('statusIcon').classList.add('pulse');
-    } else {
-      // Auto-retry with visual feedback
-      statusText.textContent = 'Ativando sensores...';
-      statusDetail.textContent = 'Mova o dispositivo levemente';
-      retrySetup();
-    }
-  }, 1500);
-}
-
-// Setup motion event listener
-function setupMotionListener() {
-  let lastTime = null;
-  let axisVariances = { x: 0, y: 0, z: 0 };
-  let axisMeans = { x: 0, y: 0, z: 0 };
-  let varianceCount = 0;
-  
-  const handleMotion = (event) => {
-    state.eventCount++;
-    
-    // Calculate sample rate
-    const now = Date.now();
-    if (lastTime) {
-      const dt = (now - lastTime) / 1000;
-      state.sampleRate = state.sampleRate * 0.9 + (1/dt) * 0.1;
-    }
-    lastTime = now;
-    
-    // Collect data if in collection mode
-    if (state.collecting) {
-      const acc = event.acceleration || event.accelerationIncludingGravity;
-      if (acc) {
-        const ax = acc.x || 0;
-        const ay = acc.y || 0;
-        const az = acc.z || 0;
-        
-        // Store raw data for later analysis
-        state.rawData.push({ timestamp: (now - state.startTime) / 1000, x: ax, y: ay, z: az });
-        
-        // Update axis statistics for dominant axis detection
-        const alpha = 0.01;
-        axisMeans.x = axisMeans.x * (1 - alpha) + ax * alpha;
-        axisMeans.y = axisMeans.y * (1 - alpha) + ay * alpha;
-        axisMeans.z = axisMeans.z * (1 - alpha) + az * alpha;
-        
-        const dx = ax - axisMeans.x;
-        const dy = ay - axisMeans.y;
-        const dz = az - axisMeans.z;
-        
-        axisVariances.x = axisVariances.x * (1 - alpha) + dx * dx * alpha;
-        axisVariances.y = axisVariances.y * (1 - alpha) + dy * dy * alpha;
-        axisVariances.z = axisVariances.z * (1 - alpha) + dz * dz * alpha;
-        
-        let value = 0;
-        const mode = document.getElementById('axis').value;
-        
-        switch(mode) {
-          case 'mag':
-            value = Math.sqrt(ax*ax + ay*ay + az*az);
-            break;
-          case 'dominant':
-            // Choose axis with highest variance
-            if (axisVariances.x >= axisVariances.y && axisVariances.x >= axisVariances.z) {
-              value = ax;
-            } else if (axisVariances.y >= axisVariances.z) {
-              value = ay;
-            } else {
-              value = az;
-            }
-            break;
-          case 'x': value = ax; break;
-          case 'y': value = ay; break;
-          case 'z': value = az; break;
-        }
-        
-        const timestamp = (now - state.startTime) / 1000;
-        state.data.push([timestamp, value]);
-        
-        // Update progress
-        updateProgress();
-      }
-    }
-  };
-  
-  // Remove old listeners
-  window.removeEventListener('devicemotion', handleMotion);
-  
-  // Add new listener
-  window.addEventListener('devicemotion', handleMotion, true);
-}
-
-// Retry setup with haptic feedback
-function retrySetup() {
-  // Vibrate if available (haptic feedback)
-  if ('vibrate' in navigator) {
-    navigator.vibrate(100);
-  }
-  
-  // Create a subtle animation to prompt user interaction
-  const statusIcon = document.getElementById('statusIcon');
-  statusIcon.style.animation = 'pulse 1s infinite';
-  
-  // Check again after user movement
-  setTimeout(() => {
-    if (state.eventCount > 0) {
-      initializeApp();
-    } else {
-      document.getElementById('statusText').textContent = 'Toque para ativar';
-      document.getElementById('statusDetail').textContent = 'Precisamos de sua permissão';
-      document.getElementById('actionBtn').disabled = false;
-      document.getElementById('actionText').textContent = 'Ativar Sensores';
-      document.getElementById('actionBtn').onclick = async () => {
-        await requestSensorPermission();
-        setupMotionListener();
-        setTimeout(() => initializeApp(), 1000);
-      };
-    }
-  }, 2000);
-}
-
-// Handle main action button
-function handleAction() {
-  if (!state.collecting) {
-    startCollection();
-  } else {
-    stopCollection();
-  }
-}
-
-// Start data collection
-function startCollection() {
-  // Reset state
-  state.data = [];
-  state.rawData = [];
-  state.collecting = true;
-  state.startTime = Date.now();
-  
-  // Update processing parameters
-  state.processingParams.lowCut = parseFloat(document.getElementById('lowCut').value);
-  state.processingParams.highCut = parseFloat(document.getElementById('highCut').value);
-  state.processingParams.segmentLength = parseFloat(document.getElementById('segmentLength').value);
-  state.processingParams.overlap = parseFloat(document.getElementById('overlap').value) / 100;
-  
-  // Update UI
-  const statusCard = document.getElementById('statusCard');
-  const actionBtn = document.getElementById('actionBtn');
-  statusCard.classList.remove('ready');
-  statusCard.classList.add('collecting');
-  actionBtn.classList.add('collecting');
-  
-  document.getElementById('statusText').textContent = 'Coletando dados...';
-  document.getElementById('statusDetail').textContent = 'Mantenha o dispositivo estável';
-  document.getElementById('actionText').textContent = 'Parar Coleta';
-  
-  // Auto-stop after duration
-  const duration = parseInt(document.getElementById('duration').value) || 20;
-  setTimeout(() => {
-    if (state.collecting) stopCollection();
-  }, duration * 1000);
-}
-
-// Update progress bar
-function updateProgress() {
-  if (!state.collecting) return;
-  
-  const duration = parseInt(document.getElementById('duration').value) || 20;
-  const elapsed = (Date.now() - state.startTime) / 1000;
-  const progress = Math.min(100, (elapsed / duration) * 100);
-  
-  document.getElementById('progressBar').style.width = `${progress}%`;
-  document.getElementById('progressBar').style.transitionDuration = '0.1s';
-  
-  // Update detail text
-  const remaining = Math.max(0, duration - elapsed);
-  document.getElementById('statusDetail').textContent = `${remaining.toFixed(0)}s restantes | ${state.data.length} amostras`;
-}
-
-// Stop collection and analyze
-function stopCollection() {
-  state.collecting = false;
-  
-  // Update UI
-  const statusCard = document.getElementById('statusCard');
-  const actionBtn = document.getElementById('actionBtn');
-  statusCard.classList.remove('collecting');
-  actionBtn.classList.remove('collecting');
-  actionBtn.classList.add('success');
-  
-  document.getElementById('statusText').textContent = 'Analisando...';
-  document.getElementById('statusDetail').textContent = 'Processando dados';
-  document.getElementById('actionText').textContent = 'Análise Completa';
-  document.getElementById('progressBar').style.width = '0%';
-  
-  // Vibrate for completion
-  if ('vibrate' in navigator) {
-    navigator.vibrate([100, 50, 100]);
-  }
-  
-  // Analyze data
-  setTimeout(() => {
-    analyzeData();
-  }, 500);
-}
-
-// Enhanced data analysis with Welch method
-function analyzeData() {
-  if (state.data.length < 100) {
-    document.getElementById('statusText').textContent = 'Dados insuficientes';
-    document.getElementById('statusDetail').textContent = 'Tente novamente com mais tempo';
-    return;
-  }
-  
-  // Extract time and signal arrays
-  const times = state.data.map(d => d[0]);
-  const signal = state.data.map(d => d[1]);
-  
-  // Calculate actual sample rate
-  const dt = times[times.length-1] / (times.length-1);
-  const fs = 1 / dt;
-  
-  // Remove DC component (detrend)
-  const mean = signal.reduce((a, b) => a + b, 0) / signal.length;
-  let detrended = signal.map(v => v - mean);
-  
-  // Apply band-pass filter
-  detrended = DigitalFilter.bandpass(
-    detrended, 
-    state.processingParams.lowCut, 
-    state.processingParams.highCut, 
-    fs
-  );
-  
-  // Compute Welch PSD
-  const welchResult = WelchPSD.compute(
-    detrended, 
-    fs, 
-    state.processingParams.segmentLength, 
-    state.processingParams.overlap
-  );
-  
-  // Calculate advanced metrics
-  const metrics = TremorMetrics.calculate(
-    welchResult.freqs, 
-    welchResult.power,
-    state.processingParams.lowCut,
-    state.processingParams.highCut
-  );
-  
-  // Store results
-  state.results = {
-    times: times,
-    signal: detrended,
-    freqs: welchResult.freqs,
-    spectrum: welchResult.power,
-    metrics: metrics,
-    sampleRate: fs,
-    numSegments: welchResult.numSegments,
-    processingParams: { ...state.processingParams }
-  };
-  
-  // Display results
-  displayResults();
-  
-  // Classify tremor type
-  classifyTremor();
-  
-  // Update UI
-  document.getElementById('statusCard').classList.add('ready');
-  document.getElementById('statusText').textContent = 'Análise completa';
-  document.getElementById('statusDetail').textContent = `Frequência dominante: ${metrics.peakFreq.toFixed(1)} Hz`;
-  document.getElementById('actionBtn').disabled = true;
-  document.getElementById('footerActions').classList.remove('hidden');
-}
-
-// Display analysis results
-function displayResults() {
-  const { times, signal, freqs, spectrum, metrics, sampleRate, numSegments } = state.results;
-  
-  // Show results section
-  document.getElementById('resultsSection').classList.remove('hidden');
-  
-  // Update metrics
-  document.getElementById('metricFreq').textContent = `${metrics.peakFreq.toFixed(1)} Hz`;
-  document.getElementById('metricFWHM').textContent = `${metrics.fwhm.toFixed(2)} Hz`;
-  document.getElementById('metricEntropy').textContent = metrics.entropy.toFixed(2);
-  document.getElementById('metricPTR').textContent = metrics.ptr.toFixed(3);
-  document.getElementById('metricTSI').textContent = metrics.tsi.toFixed(3);
-  document.getElementById('metricCentroid').textContent = `${metrics.centroid.toFixed(1)} Hz`;
-  document.getElementById('metricRate').textContent = `${sampleRate.toFixed(0)} Hz`;
-  document.getElementById('metricSegments').textContent = numSegments.toString();
-  
-  // Plot time series
-  plotTimeSeries(times, signal);
-  
-  // Plot spectrum
-  plotSpectrum(freqs, spectrum, metrics.peakFreq);
-}
-
-// Plot time series
-function plotTimeSeries(times, signal) {
-  const canvas = document.getElementById('chartTime');
-  const ctx = canvas.getContext('2d');
-  
-  // Set canvas size for retina displays
-  const rect = canvas.getBoundingClientRect();
-  canvas.width = rect.width * window.devicePixelRatio;
-  canvas.height = rect.height * window.devicePixelRatio;
-  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-  
-  // Clear canvas
-  ctx.clearRect(0, 0, rect.width, rect.height);
-  
-  // Calculate bounds
-  const padding = 20;
-  const width = rect.width - 2 * padding;
-  const height = rect.height - 2 * padding;
-  
-  const minT = Math.min(...times);
-  const maxT = Math.max(...times);
-  const minS = Math.min(...signal);
-  const maxS = Math.max(...signal);
-  const rangeS = maxS - minS || 1;
-  
-  // Draw grid
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-  ctx.lineWidth = 1;
-  for (let i = 0; i <= 5; i++) {
-    const y = padding + i * height / 5;
-    ctx.beginPath();
-    ctx.moveTo(padding, y);
-    ctx.lineTo(rect.width - padding, y);
-    ctx.stroke();
-  }
-  
-  // Draw signal
-  ctx.strokeStyle = '#007AFF';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  
-  const step = Math.max(1, Math.floor(times.length / (width * 2)));
-  for (let i = 0; i < times.length; i += step) {
-    const x = padding + (times[i] - minT) / (maxT - minT) * width;
-    const y = padding + (1 - (signal[i] - minS) / rangeS) * height;
-    
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  }
-  
-  ctx.stroke();
-  
-  // Add labels
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-  ctx.font = '12px system-ui';
-  ctx.fillText('Sinal Filtrado (3-20 Hz)', padding, padding - 5);
-  
-  // Add axis labels
-  ctx.font = '10px system-ui';
-  ctx.fillText('0s', padding, rect.height - 5);
-  ctx.fillText(`${maxT.toFixed(1)}s`, rect.width - padding - 20, rect.height - 5);
-}
-
-// Plot frequency spectrum
-function plotSpectrum(freqs, spectrum, peakFreq) {
-  const canvas = document.getElementById('chartPSD');
-  const ctx = canvas.getContext('2d');
-  
-  // Set canvas size for retina displays
-  const rect = canvas.getBoundingClientRect();
-  canvas.width = rect.width * window.devicePixelRatio;
-  canvas.height = rect.height * window.devicePixelRatio;
-  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-  
-  // Clear canvas
-  ctx.clearRect(0, 0, rect.width, rect.height);
-  
-  // Calculate bounds (limit to 0-30 Hz)
-  const padding = 20;
-  const width = rect.width - 2 * padding;
-  const height = rect.height - 2 * padding;
-  
-  const maxFreq = Math.min(30, Math.max(...freqs));
-  const maxSpec = Math.max(...spectrum.slice(0, freqs.findIndex(f => f > maxFreq) || spectrum.length));
-  
-  // Draw grid
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-  ctx.lineWidth = 1;
-  for (let i = 0; i <= 5; i++) {
-    const y = padding + i * height / 5;
-    ctx.beginPath();
-    ctx.moveTo(padding, y);
-    ctx.lineTo(rect.width - padding, y);
-    ctx.stroke();
-    
-    const x = padding + i * width / 5;
-    ctx.beginPath();
-    ctx.moveTo(x, padding);
-    ctx.lineTo(x, rect.height - padding);
-    ctx.stroke();
-  }
-  
-  // Draw spectrum
-  ctx.strokeStyle = '#34C759';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  
-  for (let i = 0; i < freqs.length && freqs[i] <= maxFreq; i++) {
-    const x = padding + freqs[i] / maxFreq * width;
-    const y = padding + (1 - spectrum[i] / maxSpec) * height;
-    
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  }
-  
-  ctx.stroke();
-  
-  // Mark peak
-  const peakIdx = freqs.findIndex(f => f >= peakFreq);
-  if (peakIdx >= 0 && peakFreq <= maxFreq) {
-    const x = padding + peakFreq / maxFreq * width;
-    const y = padding + (1 - spectrum[peakIdx] / maxSpec) * height;
-    
-    ctx.fillStyle = '#FF3B30';
-    ctx.beginPath();
-    ctx.arc(x, y, 5, 0, 2 * Math.PI);
-    ctx.fill();
-    
-    // Add peak label
-    ctx.fillStyle = '#FF3B30';
-    ctx.font = '11px system-ui';
-    ctx.fillText(`${peakFreq.toFixed(1)} Hz`, x + 8, y + 3);
-  }
-  
-  // Add diagnostic band markers
-  const lowCutX = padding + state.processingParams.lowCut / maxFreq * width;
-  const highCutX = padding + state.processingParams.highCut / maxFreq * width;
-  
-  ctx.strokeStyle = 'rgba(255, 159, 0, 0.5)';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([5, 5]);
-  
-  ctx.beginPath();
-  ctx.moveTo(lowCutX, padding);
-  ctx.lineTo(lowCutX, rect.height - padding);
-  ctx.stroke();
-  
-  ctx.beginPath();
-  ctx.moveTo(highCutX, padding);
-  ctx.lineTo(highCutX, rect.height - padding);
-  ctx.stroke();
-  
-  ctx.setLineDash([]);
-  
-  // Add labels
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-  ctx.font = '12px system-ui';
-  ctx.fillText('PSD Welch (Densidade Espectral)', padding, padding - 5);
-  
-  // Add frequency axis labels
-  ctx.font = '10px system-ui';
-  ctx.fillText('0', padding, rect.height - 5);
-  ctx.fillText('10 Hz', padding + (10/maxFreq) * width - 10, rect.height - 5);
-  ctx.fillText('20 Hz', padding + (20/maxFreq) * width - 10, rect.height - 5);
-  ctx.fillText(`${maxFreq} Hz`, rect.width - padding - 20, rect.height - 5);
-}
-
-// Classify tremor type based on advanced metrics
-function classifyTremor() {
-  if (!state.results) return;
-  
-  const classification = TremorClassification.classify(state.results.metrics);
-  
-  // Show classification section
-  document.getElementById('classificationSection').classList.remove('hidden');
-  
-  // Update explanation
-  document.getElementById('classificationExplanation').textContent = classification.explanation;
-  
-  // Update UI with animation
-  setTimeout(() => {
-    animateClassification('OT', classification.scores.OT);
-    animateClassification('ET', classification.scores.ET);
-    animateClassification('DT', classification.scores.DT);
-    animateClassification('MY', classification.scores.MY);
-  }, 100);
-}
-
-// Animate classification bars
-function animateClassification(type, percentage) {
-  const bar = document.getElementById(`bar${type}`);
-  const pct = document.getElementById(`pct${type}`);
-  
-  bar.style.width = `${percentage}%`;
-  pct.textContent = `${Math.round(percentage)}%`;
-  
-  // Color based on confidence
-  if (percentage > 60) {
-    bar.style.background = 'var(--success)';
-  } else if (percentage > 30) {
-    bar.style.background = 'var(--warning)';
-  } else {
-    bar.style.background = 'var(--primary)';
-  }
-}
-
-// Toggle methodology section
-function toggleMethodology() {
-  const content = document.getElementById('methodologyContent');
-  const toggle = document.querySelector('.methodology-toggle');
-  
-  if (content.classList.contains('visible')) {
-    content.classList.remove('visible');
-    toggle.textContent = 'Mostrar';
-  } else {
-    content.classList.add('visible');
-    toggle.textContent = 'Ocultar';
-  }
-}
-
-// Export data as CSV
-function exportData() {
-  if (!state.data || state.data.length === 0) return;
-  
-  let csv = 'Time (s),Acceleration (filtered),Raw_X,Raw_Y,Raw_Z\n';
-  
-  // Combine processed and raw data
-  for (let i = 0; i < state.data.length; i++) {
-    const [time, value] = state.data[i];
-    const raw = state.rawData[i] || { x: 0, y: 0, z: 0 };
-    csv += `${time.toFixed(6)},${value.toFixed(6)},${raw.x.toFixed(6)},${raw.y.toFixed(6)},${raw.z.toFixed(6)}\n`;
-  }
-  
-  // Add frequency domain data
-  if (state.results) {
-    csv += '\n\nFrequency (Hz),PSD\n';
-    for (let i = 0; i < state.results.freqs.length; i++) {
-      csv += `${state.results.freqs[i].toFixed(3)},${state.results.spectrum[i].toFixed(6)}\n`;
-    }
-  }
-  
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `tremor_analysis_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-  
-  // Vibrate for feedback
-  if ('vibrate' in navigator) {
-    navigator.vibrate(50);
-  }
-}
-
-// Export detailed report
-function exportReport() {
-  if (!state.results) return;
-  
-  const { metrics, sampleRate, numSegments, processingParams } = state.results;
-  const classification = TremorClassification.classify(metrics);
-  
-  const date = new Date().toLocaleString('pt-BR');
-  
-  let report = `RELATÓRIO DE ANÁLISE DE TREMOR - TremorPSD
-========================================
-
-Data/Hora: ${date}
-
-PARÂMETROS DE AQUISIÇÃO
------------------------
-• Duração: ${document.getElementById('duration').value}s
-• Componente: ${document.getElementById('axis').selectedOptions[0].text}
-• Taxa de amostragem: ${sampleRate.toFixed(1)} Hz
-• Amostras coletadas: ${state.data.length}
-
-PARÂMETROS DE PROCESSAMENTO
----------------------------
-• Filtro passa-alta: ${processingParams.lowCut} Hz
-• Filtro passa-baixa: ${processingParams.highCut} Hz
-• Tamanho do segmento: ${processingParams.segmentLength}s
-• Sobreposição: ${(processingParams.overlap * 100).toFixed(0)}%
-• Número de segmentos: ${numSegments}
-
-MÉTRICAS ESPECTRAIS
--------------------
-• Frequência de pico: ${metrics.peakFreq.toFixed(2)} Hz
-• FWHM (largura): ${metrics.fwhm.toFixed(2)} Hz
-• Entropia espectral: ${metrics.entropy.toFixed(3)} bits
-• Razão pico/total (PTR): ${metrics.ptr.toFixed(3)}
-• Índice estabilidade (TSI): ${metrics.tsi.toFixed(3)}
-• Centroide espectral: ${metrics.centroid.toFixed(2)} Hz
-
-CLASSIFICAÇÃO DIFERENCIAL
--------------------------
-• Tremor Ortostático: ${classification.scores.OT.toFixed(1)}%
-• Tremor Essencial: ${classification.scores.ET.toFixed(1)}%
-• Tremor Distônico: ${classification.scores.DT.toFixed(1)}%
-• Mioclonia: ${classification.scores.MY.toFixed(1)}%
-
-INTERPRETAÇÃO
--------------
-${classification.explanation}
-
-METODOLOGIA
------------
-1. Aquisição: Aceleração tri-axial via DeviceMotionEvent
-2. Pré-processamento: Remoção DC + filtro IIR passa-faixa
-3. Análise espectral: Método de Welch com janela Hanning
-4. Métricas: Baseadas em características do espectro de potência
-5. Classificação: Regras heurísticas explicáveis
-
-NOTA: Este relatório é apenas para fins educacionais e de pesquisa.
-Não deve ser usado para diagnóstico médico.
-
----
-Gerado por TremorPSD v2.0
-https://github.com/tremor-analysis
-`;
-
-  const blob = new Blob([report], { type: 'text/plain' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `tremor_report_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.txt`;
-  a.click();
-  URL.revokeObjectURL(url);
-  
-  // Vibrate for feedback
-  if ('vibrate' in navigator) {
-    navigator.vibrate([50, 25, 50]);
-  }
-}
-
-// Reset app for new analysis
-function resetApp() {
-  // Reset state
-  state.data = [];
-  state.rawData = [];
-  state.results = null;
-  state.collecting = false;
-  
-  // Reset UI
-  document.getElementById('resultsSection').classList.add('hidden');
-  document.getElementById('classificationSection').classList.add('hidden');
-  document.getElementById('footerActions').classList.add('hidden');
-  document.getElementById('statusCard').classList.remove('collecting', 'ready', 'error');
-  document.getElementById('statusCard').classList.add('ready');
-  document.getElementById('statusText').textContent = 'Pronto para nova análise';
-  document.getElementById('statusDetail').textContent = `Taxa: ${state.sampleRate.toFixed(0)} Hz`;
-  document.getElementById('actionBtn').disabled = false;
-  document.getElementById('actionBtn').classList.remove('success', 'collecting');
-  document.getElementById('actionText').textContent = 'Iniciar Coleta';
-  document.getElementById('progressBar').style.width = '0%';
-  
-  // Reset classification bars
-  ['OT', 'ET', 'DT', 'MY'].forEach(type => {
-    document.getElementById(`bar${type}`).style.width = '0%';
-    document.getElementById(`pct${type}`).textContent = '0%';
-  });
-  
-  // Reset methodology
-  document.getElementById('methodologyContent').classList.remove('visible');
-  document.querySelector('.methodology-toggle').textContent = 'Mostrar';
-  
-  // Vibrate for feedback
-  if ('vibrate' in navigator) {
-    navigator.vibrate(50);
-  }
-}
-
-// Auto-initialize on load
+// --- INITIALIZATION & PERMISSIONS ---
 window.addEventListener('load', () => {
-  // Check if already onboarded (for return visits)
-  if (localStorage.getItem('tremor_onboarded')) {
-    document.getElementById('onboarding').classList.add('hidden');
-    state.onboarded = true;
-    requestSensorPermission().then(() => {
-      initializeApp();
+    const isSecureContext = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    if (!isSecureContext) {
+        // On an insecure context, do nothing on load.
+        // Let the user click the "Start Analysis" button, which will then display the detailed error.
+        return;
+    }
+
+    // Attempt to initialize app directly if the context is secure and user has already granted permission.
+    requestSensorPermission().then(granted => {
+        if (granted) {
+            hideOnboarding();
+        }
     });
-  }
 });
 
-// Save onboarding state
-window.addEventListener('beforeunload', () => {
-  if (state.onboarded) {
-    localStorage.setItem('tremor_onboarded', 'true');
-  }
-});
+function startOnboarding() {
+    const isSecureContext = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    if (!isSecureContext) {
+        const p = document.querySelector('#onboarding p');
+        const btn = document.querySelector('#onboarding button');
+        p.innerHTML = '<strong>Erro de Segurança:</strong> O acesso aos sensores requer um ambiente seguro (HTTPS ou localhost). Este arquivo não pode ser aberto diretamente no navegador.';
+        btn.textContent = 'Entendido';
+        btn.onclick = null; 
+        btn.disabled = true;
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+        return;
+    }
 
-// Handle orientation changes
-window.addEventListener('orientationchange', () => {
-  // Redraw canvases
-  if (state.results) {
-    setTimeout(() => {
-      displayResults();
-    }, 100);
-  }
-});
-
-// Progressive Web App capabilities
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(() => {
-    // Service worker registration failed, app still works
-  });
+    requestSensorPermission().then(granted => {
+        if (granted) {
+            hideOnboarding();
+        } else {
+            // This handles cases where the user denies permission on a secure context
+            document.querySelector('#onboarding p').textContent = 'A permissão para acessar os sensores foi negada. Por favor, habilite-a nas configurações do seu navegador e atualize a página.';
+            document.querySelector('#onboarding button').textContent = 'Tentar Novamente';
+            document.querySelector('#onboarding button').onclick = () => location.reload();
+        }
+    });
 }
 
-// Error handling
-window.addEventListener('error', (event) => {
-  console.error('Application error:', event.error);
-  
-  // Update UI to show error state
-  const statusCard = document.getElementById('statusCard');
-  statusCard.classList.add('error');
-  document.getElementById('statusText').textContent = 'Erro detectado';
-  document.getElementById('statusDetail').textContent = 'Recarregue a página para tentar novamente';
-});
+function hideOnboarding() {
+    const onboardingEl = document.getElementById('onboarding');
+    const appEl = document.getElementById('app');
+    onboardingEl.classList.add('opacity-0', 'pointer-events-none');
+    appEl.classList.remove('opacity-0');
+    setTimeout(initializeApp, 500);
+}
 
-// Unhandled promise rejection
-window.addEventListener('unhandledrejection', (event) => {
-  console.error('Unhandled promise rejection:', event.reason);
-  event.preventDefault();
-});
-</script>
+async function requestSensorPermission() {
+    // Security check is now handled by the callers.
+    try {
+        if (typeof DeviceMotionEvent.requestPermission === 'function') {
+            const permission = await DeviceMotionEvent.requestPermission();
+            return permission === 'granted';
+        }
+        // For Android/other devices that don't require explicit permission
+        return true;
+    } catch (error) {
+        console.error('Error requesting sensor permission:', error);
+        return false;
+    }
+}
 
-<!-- Optional PWA Service Worker -->
-<script id="sw.js">
-// Basic service worker for offline capability
-self.addEventListener('install', (event) => {
-  self.skipWaiting();
-});
+function initializeApp() {
+    setupMotionListener();
+    initCharts();
+    setTimeout(checkSensorStatus, 1500);
+}
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil(clients.claim());
-});
+function checkSensorStatus() {
+    if (state.eventCount > 0) {
+        state.sensorReady = true;
+        updateUI('ready');
+    } else {
+        updateUI('error', {
+            text: 'Sensor não detectado',
+            detail: 'Mova o dispositivo para ativá-lo.'
+        });
+    }
+}
 
-self.addEventListener('fetch', (event) => {
-  event.respondWith(fetch(event.request).catch(() => {
-    return new Response('Offline');
-  }));
-});
+// --- UI MANAGEMENT ---
+function updateUI(status, details = {}) {
+    const statusCard = document.getElementById('statusCard');
+    const statusIconContainer = document.getElementById('statusIconContainer');
+    const spinner = document.getElementById('spinner');
+    const iconReady = document.getElementById('iconReady');
+    const statusText = document.getElementById('statusText');
+    const statusDetail = document.getElementById('statusDetail');
+    const actionBtn = document.getElementById('actionBtn');
+    const actionText = document.getElementById('actionText');
+    
+    // Reset classes
+    statusCard.className = 'bg-gray-800 rounded-2xl p-6 border-t-4 transition-all duration-300';
+    statusIconContainer.classList.remove('pulse-glow-animation');
+    spinner.classList.add('hidden');
+    iconReady.classList.add('hidden');
+    actionBtn.classList.remove('bg-yellow-500', 'hover:bg-yellow-600', 'bg-green-500');
+    actionBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+
+    switch (status) {
+        case 'initializing':
+            statusText.textContent = 'Preparando sensores...';
+            statusDetail.textContent = 'Aguarde a inicialização';
+            statusCard.classList.add('border-blue-500');
+            spinner.classList.remove('hidden');
+            actionBtn.disabled = true;
+            actionText.textContent = 'Aguardando Sensores';
+            break;
+        case 'ready':
+            statusText.textContent = 'Pronto para análise';
+            statusDetail.textContent = `Taxa de amostra: ${state.sampleRate.toFixed(0)} Hz`;
+            statusCard.classList.add('border-green-500');
+            statusIconContainer.classList.add('pulse-glow-animation');
+            iconReady.classList.remove('hidden');
+            actionBtn.disabled = false;
+            actionText.textContent = 'Iniciar Coleta';
+            break;
+        case 'collecting':
+            statusText.textContent = 'Coletando dados...';
+            statusCard.classList.add('border-yellow-500');
+            spinner.classList.remove('hidden');
+            actionBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            actionBtn.classList.add('bg-yellow-500', 'hover:bg-yellow-600');
+            actionText.textContent = 'Parar Coleta';
+            break;
+        case 'analyzing':
+            statusText.textContent = 'Analisando...';
+            statusDetail.textContent = `${state.data.length} amostras coletadas.`;
+            statusCard.classList.add('border-purple-500');
+            spinner.classList.remove('hidden');
+            actionBtn.disabled = true;
+            actionText.textContent = 'Processando...';
+            break;
+        case 'done':
+            statusText.textContent = 'Análise Concluída';
+            statusDetail.textContent = `Pico em ${state.results.peakFreq.toFixed(1)} Hz`;
+            statusCard.classList.add('border-green-500');
+            iconReady.classList.remove('hidden');
+            actionBtn.disabled = true;
+            actionText.textContent = 'Análise Completa';
+            actionBtn.classList.add('bg-green-500');
+            break;
+        case 'error':
+            statusText.textContent = details.text || 'Erro';
+            statusDetail.textContent = details.detail || 'Tente novamente.';
+            statusCard.classList.add('border-red-500');
+            // Add error icon here if needed
+            actionBtn.disabled = true;
+            actionText.textContent = 'Erro no Sensor';
+            break;
+    }
+}
+
+function showInfoModal() {
+    document.getElementById('infoModal').classList.remove('hidden');
+}
+
+function hideInfoModal(event) {
+    if (event && event.target.id !== 'infoModal') return;
+    document.getElementById('infoModal').classList.add('hidden');
+}
+
+
+// --- SENSOR & DATA COLLECTION ---
+function setupMotionListener() {
+    let lastTime = performance.now();
+    
+    const handleMotion = (event) => {
+        state.eventCount++;
+        const now = performance.now();
+        const dt = (now - lastTime) / 1000;
+        if (dt > 0) {
+            const currentRate = 1 / dt;
+            // Weighted moving average for sample rate
+            state.sampleRate = state.sampleRate * 0.95 + currentRate * 0.05;
+        }
+        lastTime = now;
+
+        if (state.collecting) {
+            const acc = event.accelerationIncludingGravity;
+            if (!acc) return;
+
+            const t = (now - state.startTime) / 1000;
+            const axis = document.getElementById('axis').value;
+            let value;
+            switch(axis) {
+                case 'x': value = acc.x; break;
+                case 'y': value = acc.y; break;
+                case 'z': value = acc.z; break;
+                default: value = Math.sqrt(acc.x**2 + acc.y**2 + acc.z**2);
+            }
+            state.data.push({ t, v: value });
+            updateProgress();
+        }
+    };
+
+    window.addEventListener('devicemotion', handleMotion, true);
+}
+
+function handleAction() {
+    state.collecting ? stopCollection() : startCollection();
+}
+
+function startCollection() {
+    state.data = [];
+    state.collecting = true;
+    state.startTime = performance.now();
+    
+    document.getElementById('resultsSection').classList.add('hidden');
+    document.getElementById('footerActions').classList.add('hidden');
+    
+    updateUI('collecting');
+
+    const duration = parseInt(document.getElementById('duration').value) * 1000;
+    setTimeout(() => {
+        if (state.collecting) stopCollection();
+    }, duration);
+}
+
+function stopCollection() {
+    state.collecting = false;
+    if ('vibrate' in navigator) navigator.vibrate(100);
+    
+    document.getElementById('progressBar').style.width = '0%';
+    updateUI('analyzing');
+    
+    setTimeout(analyzeData, 500); // Allow UI to update
+}
+
+function updateProgress() {
+    const duration = parseInt(document.getElementById('duration').value);
+    const elapsed = (performance.now() - state.startTime) / 1000;
+    const progress = Math.min(100, (elapsed / duration) * 100);
+    
+    document.getElementById('progressBar').style.width = `${progress}%`;
+    document.getElementById('statusDetail').textContent = `Restam ${(duration - elapsed).toFixed(0)}s | ${state.data.length} amostras`;
+}
+
+
+// --- SIGNAL PROCESSING & ANALYSIS ---
+
+// Radix-2 FFT implementation
+function fft(real, imag) {
+    const n = real.length;
+    if (n === 0) return;
+
+    // Bit-reversal permutation
+    for (let i = 1, j = 0; i < n; i++) {
+        let bit = n >> 1;
+        for (; (j & bit) !== 0; bit >>= 1)
+            j ^= bit;
+        j ^= bit;
+        if (i < j) {
+            [real[i], real[j]] = [real[j], real[i]];
+            [imag[i], imag[j]] = [imag[j], imag[i]];
+        }
+    }
+
+    // Cooley-Tukey FFT
+    for (let len = 2; len <= n; len <<= 1) {
+        const halfLen = len >> 1;
+        const angle = -2 * Math.PI / len;
+        const w_real = Math.cos(angle);
+        const w_imag = Math.sin(angle);
+        for (let i = 0; i < n; i += len) {
+            let t_real = 1;
+            let t_imag = 0;
+            for (let j = 0; j < halfLen; j++) {
+                const u_real = real[i + j];
+                const u_imag = imag[i + j];
+                const v_real = real[i + j + halfLen] * t_real - imag[i + j + halfLen] * t_imag;
+                const v_imag = real[i + j + halfLen] * t_imag + imag[i + j + halfLen] * t_real;
+                real[i + j] = u_real + v_real;
+                imag[i + j] = u_imag + v_imag;
+                real[i + j + halfLen] = u_real - v_real;
+                imag[i + j + halfLen] = u_imag - v_imag;
+                [t_real, t_imag] = [t_real * w_real - t_imag * w_imag, t_real * w_imag + t_imag * w_real];
+            }
+        }
+    }
+}
+
+
+// Welch's method for Power Spectral Density
+function welch(signal, fs, nperseg) {
+    const n = signal.length;
+    nperseg = Math.min(nperseg, n);
+    const noverlap = Math.floor(nperseg / 2);
+    const step = nperseg - noverlap;
+    
+    // Hann window
+    const window = new Float64Array(nperseg);
+    for (let i = 0; i < nperseg; i++) {
+        window[i] = 0.5 * (1 - Math.cos(2 * Math.PI * i / (nperseg - 1)));
+    }
+    const scale = 1.0 / (fs * (window.reduce((a, b) => a + b*b, 0) / nperseg));
+
+    let psd = new Float64Array(Math.floor(nperseg / 2) + 1).fill(0);
+    let numSegments = 0;
+
+    for (let i = 0; i + nperseg <= n; i += step) {
+        const segment = signal.slice(i, i + nperseg);
+        
+        let real = new Float64Array(nperseg);
+        for (let j = 0; j < nperseg; j++) {
+            real[j] = segment[j] * window[j];
+        }
+        let imag = new Float64Array(nperseg).fill(0);
+
+        fft(real, imag);
+        
+        for (let j = 0; j < psd.length; j++) {
+            const specVal = real[j]**2 + imag[j]**2;
+            psd[j] += (j > 0 && j < psd.length - 1) ? 2 * specVal : specVal;
+        }
+        numSegments++;
+    }
+
+    if (numSegments > 0) {
+        psd = psd.map(v => v * scale / numSegments);
+    }
+
+    const freqs = new Float64Array(psd.length);
+    for (let i = 0; i < psd.length; i++) {
+        freqs[i] = i * fs / nperseg;
+    }
+    
+    return { freqs, psd };
+}
+
+
+function analyzeData() {
+    if (state.data.length < 50) {
+        updateUI('error', { text: 'Dados Insuficientes', detail: 'Colete por mais tempo.' });
+        return;
+    }
+
+    const signal = state.data.map(d => d.v);
+    const mean = signal.reduce((a, b) => a + b, 0) / signal.length;
+    const detrended = signal.map(v => v - mean);
+    
+    const fs = state.sampleRate;
+    const nperseg = Math.pow(2, Math.floor(Math.log2(fs * 2))); // ~2 seconds window
+
+    const { freqs, psd } = welch(detrended, fs, nperseg);
+
+    // Find peak in the 2-20 Hz range
+    let peakPower = 0;
+    let peakIdx = -1;
+    for (let i = 0; i < freqs.length; i++) {
+        if (freqs[i] >= 2 && freqs[i] <= 20) {
+            if (psd[i] > peakPower) {
+                peakPower = psd[i];
+                peakIdx = i;
+            }
+        }
+    }
+    
+    if (peakIdx === -1) {
+         updateUI('error', { text: 'Pico não detectado', detail: 'O sinal de tremor pode ser muito fraco.' });
+        return;
+    }
+    const peakFreq = freqs[peakIdx];
+
+    // Calculate FWHM (Full Width at Half Maximum)
+    const halfMax = peakPower / 2;
+    let leftIdx = peakIdx;
+    while (leftIdx > 0 && psd[leftIdx] > halfMax) leftIdx--;
+    let rightIdx = peakIdx;
+    while (rightIdx < freqs.length - 1 && psd[rightIdx] > halfMax) rightIdx++;
+    const width = freqs[rightIdx] - freqs[leftIdx];
+
+    state.results = {
+        times: state.data.map(d => d.t),
+        signal: detrended,
+        freqs,
+        psd,
+        peakFreq,
+        peakPower,
+        width,
+        sampleRate: fs
+    };
+
+    displayResults();
+    classifyTremor();
+
+    updateUI('done');
+    document.getElementById('resultsSection').classList.remove('hidden');
+    document.getElementById('footerActions').classList.remove('hidden');
+}
+
+
+// --- RESULTS DISPLAY & CHARTS ---
+function displayResults() {
+    const { peakFreq, peakPower, width, sampleRate } = state.results;
+
+    document.getElementById('metricFreq').textContent = `${peakFreq.toFixed(1)} Hz`;
+    document.getElementById('metricPower').textContent = `${(peakPower * 1e3).toExponential(1)}`;
+    document.getElementById('metricWidth').textContent = `${width.toFixed(2)} Hz`;
+    document.getElementById('metricRate').textContent = `${sampleRate.toFixed(0)} Hz`;
+
+    updateTimeSeriesChart();
+    updatePsdChart();
+}
+
+function classifyTremor() {
+    const { peakFreq, width, peakPower } = state.results;
+    let scores = { OT: 0, ET: 0, DT: 0, MY: 0 };
+    
+    // Normalize power for consistent scoring
+    const normalizedPower = Math.log10(peakPower * 1e6 + 1);
+
+    // Essential Tremor (4-12 Hz, regular)
+    if (peakFreq >= 4 && peakFreq <= 12) {
+        scores.ET = (1 - Math.abs(peakFreq - 8) / 4) * (1 - Math.min(1, width / 4)) * normalizedPower;
+    }
+    // Orthostatic Tremor (13-18 Hz, very regular)
+    if (peakFreq >= 13 && peakFreq <= 18) {
+        scores.OT = (1 - Math.abs(peakFreq - 15.5) / 2.5) * Math.max(0, 1 - width) * normalizedPower;
+    }
+     // Dystonic Tremor (4-7 Hz, often irregular)
+    if (peakFreq >= 4 && peakFreq <= 9 && width > 1.5) {
+        scores.DT = 0.5 * normalizedPower;
+    }
+    // Myoclonus (irregular, broad spectrum)
+    if (width > 3 && normalizedPower > 0.5) {
+        scores.MY = 0.4 * normalizedPower;
+    }
+
+    const total = Object.values(scores).reduce((a, b) => a + b, 0);
+    const container = document.getElementById('classificationContainer');
+    container.innerHTML = ''; // Clear previous results
+
+    for (const type in scores) {
+        const pct = total > 0 ? (scores[type] / total) * 100 : 0;
+        const { label, color } = CLASSIFICATION_TYPES[type];
+        
+        const item = document.createElement('div');
+        item.innerHTML = `
+            <div class="flex justify-between items-center mb-1">
+                <span class="text-sm">${label}</span>
+                <span class="text-sm font-semibold">${pct.toFixed(0)}%</span>
+            </div>
+            <div class="w-full bg-gray-700 rounded-full h-2.5">
+                <div class="bg-blue-500 h-2.5 rounded-full transition-all duration-1000 ease-out" style="width: ${pct}%; background-color: ${color};"></div>
+            </div>
+        `;
+        container.appendChild(item);
+    }
+}
+
+function initCharts() {
+    const commonOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { 
+                ticks: { color: '#9CA3AF' }, 
+                grid: { color: 'rgba(255,255,255,0.1)' } 
+            },
+            y: { 
+                ticks: { color: '#9CA3AF' }, 
+                grid: { color: 'rgba(255,255,255,0.1)' }
+            }
+        }
+    };
+
+    timeChart = new Chart(document.getElementById('chartTime'), {
+        type: 'line',
+        data: { labels: [], datasets: [{ data: [], borderColor: '#60A5FA', borderWidth: 1.5, pointRadius: 0, tension: 0.1 }] },
+        options: { ...commonOptions, scales: { ...commonOptions.scales, x: { ...commonOptions.scales.x, title: { display: true, text: 'Tempo (s)', color: '#9CA3AF' } } } }
+    });
+    
+    psdChart = new Chart(document.getElementById('chartPSD'), {
+        type: 'line',
+        data: { labels: [], datasets: [{ data: [], borderColor: '#34D399', borderWidth: 2, pointRadius: 0, fill: { target: 'origin', above: 'rgba(52, 211, 153, 0.2)' } }] },
+        options: { ...commonOptions, scales: { ...commonOptions.scales, x: { ...commonOptions.scales.x, title: { display: true, text: 'Frequência (Hz)', color: '#9CA3AF' }, max: 25 }, y: { ...commonOptions.scales.y, title: { display: true, text: 'Potência', color: '#9CA3AF' } } } }
+    });
+}
+
+function updateTimeSeriesChart() {
+    const { times, signal } = state.results;
+    timeChart.data.labels = times;
+    timeChart.data.datasets[0].data = signal;
+    timeChart.update('none');
+}
+
+function updatePsdChart() {
+    const { freqs, psd } = state.results;
+    psdChart.data.labels = freqs;
+    psdChart.data.datasets[0].data = psd;
+    psdChart.update('none');
+}
+
+
+// --- UTILITIES & APP LIFECYCLE ---
+function exportData() {
+    if (!state.data || state.data.length === 0) return;
+    
+    let csv = 'Time(s),Acceleration(m/s^2)\n';
+    state.data.forEach(row => {
+        csv += `${row.t.toFixed(6)},${row.v.toFixed(6)}\n`;
+    });
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tremor_analysis_${new Date().toISOString()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    if ('vibrate' in navigator) navigator.vibrate(50);
+}
+
+function resetApp() {
+    state.data = [];
+    state.results = null;
+    state.collecting = false;
+    
+    document.getElementById('resultsSection').classList.add('hidden');
+    document.getElementById('footerActions').classList.add('hidden');
+    
+    updateTimeSeriesChart();
+    updatePsdChart();
+    
+    updateUI('ready');
+    if ('vibrate' in navigator) navigator.vibrate(50);
+}
+
 </script>
 
 </body>
