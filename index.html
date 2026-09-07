@@ -1,1012 +1,289 @@
 <!DOCTYPE html>
-<html lang="pt-BR" class="dark">
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>TremorPSD - Análise Aprimorada</title>
-    
-    <!-- Tailwind CSS via CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Chart.js via CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <!-- jsPDF via CDN for PDF Export -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    
-    <!-- Custom Font -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-    <style>
-        /* Estilos base e customizações */
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
-        /* Animação de pulso para o ícone */
-        @keyframes pulse-glow {
-            0%, 100% {
-                transform: scale(1);
-                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
-            }
-            50% {
-                transform: scale(1.05);
-                box-shadow: 0 0 20px 10px rgba(59, 130, 246, 0);
-            }
-        }
-        .pulse-glow-animation {
-            animation: pulse-glow 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>TremorPSD — Análise quantitativa de tremor</title>
+  <meta name="description" content="Análise de tremor por acelerometria no navegador: espectro de Welch, TSI, irregularidade, harmônicos e relatório detalhado. Funciona offline (PWA).">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#F2F2F7">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="TremorPSD">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <script>
+    // Aplica o tema antes da primeira pintura (evita flash)
+    (function () {
+      try {
+        var pref = localStorage.getItem('tremorpsd-theme') || 'auto';
+        var dark = pref === 'dark' || (pref === 'auto' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme-pref', pref);
+      } catch (e) { document.documentElement.setAttribute('data-theme', 'light'); }
+    })();
+  </script>
+  <link rel="stylesheet" href="css/app.css">
 </head>
-<body class="bg-gray-900 text-white antialiased min-h-screen">
+<body>
+  <!-- Onboarding -->
+  <section id="hero" class="hero" aria-label="Boas-vindas">
+    <div class="logo" aria-hidden="true">
+      <svg viewBox="0 0 512 512" fill="none" stroke="#fff" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"><path d="M64 296 L112 296 L136 232 L160 360 L184 200 L208 392 L232 168 L256 424 L280 152 L304 392 L328 200 L352 360 L376 232 L400 296 L448 296"/></svg>
+    </div>
+    <h1>TremorPSD</h1>
+    <p>Análise quantitativa de tremor com o acelerômetro do seu aparelho: frequência de pico, índice de estabilidade (TSI), irregularidade, harmônicos e relatório detalhado com base na literatura.</p>
+    <div class="steps" aria-hidden="true">
+      <div class="step"><b>1</b>Informe a condição de ativação e o segmento</div>
+      <div class="step"><b>2</b>Fixe o aparelho firmemente e inicie a coleta</div>
+      <div class="step"><b>3</b>Revise as métricas e exporte o relatório</div>
+    </div>
+    <button id="btnStart" class="btn" type="button">Começar</button>
+    <button id="btnDemo" class="btn ghost" type="button">Modo demonstração (sinal simulado)</button>
+    <p id="heroNote" class="t-footnote" style="margin-top:18px;color:rgba(255,255,255,0.75)">Requer HTTPS e permissão de acesso aos sensores de movimento.</p>
+  </section>
 
-    <!-- Onboarding Screen -->
-    <div id="onboarding" class="fixed inset-0 bg-gradient-to-br from-indigo-600 to-purple-700 flex flex-col justify-center items-center p-6 z-50 transition-opacity duration-500">
-        <div class="bg-white/20 backdrop-blur-lg p-6 rounded-3xl mb-8">
-            <svg class="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+  <div id="app" class="app" hidden>
+    <header class="topbar">
+      <div class="container">
+        <div class="brand">
+          <div class="brand-icon" aria-hidden="true"><svg viewBox="0 0 512 512" fill="none" stroke="#fff" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"><path d="M64 296 L112 296 L136 232 L160 360 L184 200 L208 392 L232 168 L256 424 L280 152 L304 392 L328 200 L352 360 L376 232 L400 296 L448 296"/></svg></div>
+          <span class="brand-name">TremorPSD</span>
         </div>
-        <h1 class="text-4xl font-bold mb-4 text-center">Bem-vindo ao TremorPSD</h1>
-        <p class="text-lg text-white/80 text-center max-w-sm mb-10">Analise tremores de forma precisa usando os sensores do seu dispositivo. Posicione o aparelho na mão ou membro a ser avaliado e siga as instruções.</p>
-        <button onclick="startOnboarding()" class="bg-white text-indigo-600 font-semibold text-lg py-4 px-12 rounded-full shadow-2xl transform hover:scale-105 active:scale-95 transition-transform duration-200">
-            Começar Análise
-        </button>
-    </div>
-
-    <!-- Main App Container -->
-    <div id="app" class="opacity-0 transition-opacity duration-500">
-        <header class="bg-gray-900/70 backdrop-blur-lg sticky top-0 z-40 border-b border-gray-700/50 p-4">
-            <div class="max-w-4xl mx-auto">
-                <h1 class="text-xl font-bold">TremorPSD</h1>
-                <p class="text-sm text-gray-400">Análise de Tremor por Densidade Espectral de Potência</p>
-            </div>
-        </header>
-
-        <main class="p-4 max-w-4xl mx-auto pb-24">
-            <!-- Status & Control Section -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <!-- Status Card -->
-                <div id="statusCard" class="bg-gray-800 rounded-2xl p-6 border-t-4 border-blue-500 transition-all duration-300">
-                    <div class="flex items-center space-x-4">
-                        <div id="statusIconContainer" class="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0">
-                            <div id="spinner" class="w-8 h-8 border-4 border-gray-600 border-t-blue-500 rounded-full animate-spin"></div>
-                            <svg id="iconReady" class="hidden w-10 h-10 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                        </div>
-                        <div>
-                            <p id="statusText" class="text-lg font-semibold">Preparando sensores...</p>
-                            <p id="statusDetail" class="text-sm text-gray-400">Aguarde a inicialização</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Control Panel -->
-                <div class="bg-gray-800 rounded-2xl p-6">
-                    <div class="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label for="duration" class="text-sm text-gray-400 block mb-1">Duração (s)</label>
-                            <input type="number" id="duration" value="20" min="5" max="60" class="w-full bg-gray-700 text-white rounded-lg p-2 border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                        </div>
-                        <div>
-                            <label for="axis" class="text-sm text-gray-400 block mb-1">Eixo do Sinal</label>
-                            <select id="axis" class="w-full bg-gray-700 text-white rounded-lg p-2 border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                                <option value="mag">Magnitude</option>
-                                <option value="x">Eixo X</option>
-                                <option value="y">Eixo Y</option>
-                                <option value="z">Eixo Z</option>
-                            </select>
-                        </div>
-                    </div>
-                    <button id="actionBtn" onclick="handleAction()" disabled class="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700 active:bg-blue-800 relative overflow-hidden">
-                        <span id="actionText">Aguardando Sensores</span>
-                        <div id="progressBar" class="absolute bottom-0 left-0 h-1 bg-white/30" style="width: 0%;"></div>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Results Section (Initially Hidden) -->
-            <div id="resultsSection" class="hidden">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-2xl font-bold">Resultados da Análise</h2>
-                     <button onclick="showInfoModal()" class="text-blue-400 hover:text-blue-300 flex items-center space-x-1">
-                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                         <span>O que isso significa?</span>
-                     </button>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                    <!-- Metrics Grid -->
-                    <div class="bg-gray-800 rounded-2xl p-6">
-                        <h3 class="font-semibold mb-4 text-lg">Métricas de Análise</h3>
-                        <div class="grid grid-cols-3 gap-4">
-                            <div class="bg-gray-700/50 p-3 rounded-lg">
-                                <p class="text-xs text-gray-400 truncate" title="Frequência de Pico (Peak Frequency)">Freq. de Pico</p>
-                                <p id="metricPeakFreq" class="text-xl font-bold text-blue-400">— Hz</p>
-                            </div>
-                            <div class="bg-gray-700/50 p-3 rounded-lg">
-                                <p class="text-xs text-gray-400" title="Potência Espectral Total">Potência Total</p>
-                                <p id="metricTotalPower" class="text-xl font-bold text-teal-400">—</p>
-                            </div>
-                            <div class="bg-gray-700/50 p-3 rounded-lg">
-                                <p class="text-xs text-gray-400" title="Proeminência do Pico">Proeminência</p>
-                                <p id="metricProminence" class="text-xl font-bold text-cyan-400">—</p>
-                            </div>
-                            <div class="bg-gray-700/50 p-3 rounded-lg">
-                                <p class="text-xs text-gray-400" title="Largura à Meia Altura (Full Width at Half Maximum)">FWHM</p>
-                                <p id="metricFWHM" class="text-xl font-bold text-yellow-400">— Hz</p>
-                            </div>
-                            <div class="bg-gray-700/50 p-3 rounded-lg">
-                                <p class="text-xs text-gray-400" title="Índice de Estabilidade do Tremor (Tremor Stability Index)">Estabilidade (TSI)</p>
-                                <p id="metricTSI" class="text-xl font-bold text-purple-400">—</p>
-                            </div>
-                            <div class="bg-gray-700/50 p-3 rounded-lg">
-                                <p class="text-xs text-gray-400" title="Entropia Espectral (Spectral Entropy)">Entropia Esp.</p>
-                                <p id="metricEntropy" class="text-xl font-bold text-pink-400">—</p>
-                            </div>
-                             <div class="bg-gray-700/50 p-3 rounded-lg">
-                                <p class="text-xs text-gray-400" title="Valor Quadrático Médio (Root Mean Square)">Amplitude (RMS)</p>
-                                <p id="metricRMS" class="text-xl font-bold text-lime-400">—</p>
-                            </div>
-                            <div class="bg-gray-700/50 p-3 rounded-lg">
-                                <p class="text-xs text-gray-400" title="Mediana do Jerk (50º percentil)">Jerk (JR50)</p>
-                                <p id="metricJR50" class="text-xl font-bold text-red-400">—</p>
-                            </div>
-                            <div class="bg-gray-700/50 p-3 rounded-lg">
-                                <p class="text-xs text-gray-400" title="Índice de Energia Wavelet">Índice Wavelet</p>
-                                <p id="metricWavelet" class="text-xl font-bold text-indigo-400">—</p>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Classification -->
-                    <div class="bg-gray-800 rounded-2xl p-6">
-                        <h3 class="font-semibold mb-4 text-lg">Classificação Sugerida</h3>
-                        <div class="space-y-3" id="classificationContainer">
-                            <!-- Items inserted by JS -->
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Charts Section -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="bg-gray-800 rounded-2xl p-4 h-64">
-                        <h3 class="font-semibold mb-2 text-center text-gray-300">Sinal no Tempo</h3>
-                        <canvas id="chartTime"></canvas>
-                    </div>
-                    <div class="bg-gray-800 rounded-2xl p-4 h-64">
-                        <h3 class="font-semibold mb-2 text-center text-gray-300">Densidade Espectral de Potência (PSD)</h3>
-                        <canvas id="chartPSD"></canvas>
-                    </div>
-                </div>
-            </div>
-        </main>
-        
-        <!-- Footer Actions -->
-        <footer id="footerActions" class="hidden fixed bottom-0 left-0 right-0 bg-gray-800/80 backdrop-blur-lg border-t border-gray-700 p-2 md:p-4">
-            <div class="max-w-4xl mx-auto grid grid-cols-4 gap-2 md:gap-4">
-                <button onclick="exportPdf()" class="w-full bg-red-600 text-white font-semibold py-2 md:py-3 rounded-lg hover:bg-red-700 transition-colors text-xs md:text-base">Exportar PDF</button>
-                <button onclick="exportMetricsCsv()" class="w-full bg-green-600 text-white font-semibold py-2 md:py-3 rounded-lg hover:bg-green-700 transition-colors text-xs md:text-base">Métricas (CSV)</button>
-                <button onclick="exportRawCsv()" class="w-full bg-gray-600 text-white font-semibold py-2 md:py-3 rounded-lg hover:bg-gray-700 transition-colors text-xs md:text-base">Dados (CSV)</button>
-                <button onclick="resetApp()" class="w-full bg-blue-600 text-white font-semibold py-2 md:py-3 rounded-lg hover:bg-blue-700 transition-colors text-xs md:text-base">Nova Análise</button>
-            </div>
-        </footer>
-    </div>
-
-    <!-- Info Modal -->
-    <div id="infoModal" class="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 hidden" onclick="hideInfoModal(event)">
-        <div class="bg-gray-800 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6" id="infoModalContent">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-2xl font-bold">Entendendo os Resultados</h2>
-                <button onclick="hideInfoModal()" class="text-gray-400 hover:text-white">&times;</button>
-            </div>
-            <div class="prose prose-invert prose-sm md:prose-base text-gray-300 space-y-4">
-                <p>Esta análise transforma o sinal do acelerômetro (tremor) em um gráfico de **Densidade Espectral de Potência (PSD)**, que mostra quais frequências são mais intensas.</p>
-                
-                <div><h4 class="font-semibold text-white">Frequência de Pico (Hz)</h4><p>A frequência onde o tremor é mais forte. É o principal indicador para classificar o tipo de tremor.</p></div>
-                <div><h4 class="font-semibold text-white">Amplitude (RMS)</h4><p>Mede a intensidade ou amplitude efetiva do tremor. Um valor mais alto indica um tremor de maior amplitude.</p></div>
-                <div><h4 class="font-semibold text-white">Potência Total & Proeminência</h4><p><b>Potência Total</b> é a energia total do sinal de tremor. <b>Proeminência</b> mede o quão claro e distinto é o pico principal de tremor em relação ao ruído de fundo.</p></div>
-                <div><h4 class="font-semibold text-white">FWHM & Estabilidade (TSI)</h4><p>Medem a regularidade do tremor. Valores baixos (pico fino) significam um tremor muito rítmico e estável.</p></div>
-                <div><h4 class="font-semibold text-white">Jerk (JR50)</h4><p>Mede a "brusquidão" do movimento. Valores altos são característicos de movimentos irregulares e súbitos, como mioclonias.</p></div>
-                <div><h4 class="font-semibold text-white">Entropia & Índice Wavelet</h4><p><b>Entropia</b> mede a complexidade do sinal (sinais puros têm baixa entropia). O <b>Índice Wavelet</b> avalia a consistência do tremor na sua frequência principal ao longo do tempo.</p></div>
-                <div><h4 class="font-semibold text-white">Classificação Sugerida</h4><p>Com base nas características encontradas, o sistema oferece uma sugestão. <strong>Isto não é um diagnóstico</strong> e deve ser interpretado por um profissional de saúde qualificado.</p></div>
-                <p class="text-xs text-gray-500 pt-4 border-t border-gray-700">A análise é feita usando o Método de Welch para calcular a PSD, uma técnica robusta para análise de sinais biológicos.</p>
-            </div>
+        <div class="row">
+          <div class="theme-switch" role="group" aria-label="Aparência">
+            <button type="button" data-theme-pref="auto" title="Automático (sistema)" aria-label="Tema automático"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></svg></button>
+            <button type="button" data-theme-pref="light" title="Claro" aria-label="Tema claro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
+            <button type="button" data-theme-pref="dark" title="Escuro" aria-label="Tema escuro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+          </div>
+          <button id="btnInfo" class="icon-btn" type="button" aria-label="Sobre as métricas" title="Sobre as métricas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg></button>
         </div>
-    </div>
+      </div>
+    </header>
 
+    <main>
+      <div class="container stack">
+        <div id="installBanner" class="card install-banner">
+          <div class="grow"><p class="t-headline">Instalar TremorPSD</p><p class="t-footnote t-secondary">Adicione à tela inicial para usar offline em tela cheia.</p></div>
+          <button id="btnInstall" class="btn small" type="button">Instalar</button>
+          <button id="btnInstallDismiss" class="icon-btn" type="button" aria-label="Fechar">✕</button>
+        </div>
+        <div id="updateBanner" class="card install-banner">
+          <div class="grow"><p class="t-headline">Nova versão disponível</p><p class="t-footnote t-secondary">Atualize para carregar a versão mais recente.</p></div>
+          <button id="btnUpdate" class="btn small" type="button">Atualizar</button>
+        </div>
 
-<script>
-// --- GLOBAL STATE & CONFIG ---
-const state = {
-    sensorReady: false,
-    collecting: false,
-    data: [],
-    results: null,
-    sampleRate: 0,
-    eventCount: 0,
-    startTime: null,
-};
-
-let timeChart, psdChart;
-
-const CLASSIFICATION_TYPES = {
-    OT: { label: 'Ortostático', color: '#FBBF24' }, // amber-400
-    ET: { label: 'Essencial', color: '#34D399' }, // emerald-400
-    DT: { label: 'Distônico', color: '#F87171' }, // red-400
-    MY: { label: 'Mioclonia', color: '#60A5FA' }, // blue-400
-};
-
-
-// --- INITIALIZATION & PERMISSIONS ---
-window.addEventListener('load', () => {
-    const isSecureContext = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-    if (!isSecureContext) {
-        return;
-    }
-    hideOnboarding();
-});
-
-function startOnboarding() {
-    const isSecureContext = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-    if (!isSecureContext) {
-        const p = document.querySelector('#onboarding p');
-        const btn = document.querySelector('#onboarding button');
-        p.innerHTML = '<strong>Erro de Segurança:</strong> O acesso aos sensores requer um ambiente seguro (HTTPS ou localhost). Este arquivo não pode ser aberto diretamente no navegador.';
-        btn.textContent = 'Entendido';
-        btn.onclick = null; 
-        btn.disabled = true;
-        btn.classList.add('opacity-50', 'cursor-not-allowed');
-        return;
-    }
-
-    requestSensorPermission().then(granted => {
-        if (granted) {
-            hideOnboarding();
-        } else {
-            document.querySelector('#onboarding p').textContent = 'A permissão para acessar os sensores foi negada. Por favor, habilite-a nas configurações do seu navegador e atualize a página.';
-            document.querySelector('#onboarding button').textContent = 'Tentar Novamente';
-            document.querySelector('#onboarding button').onclick = () => location.reload();
-        }
-    });
-}
-
-function hideOnboarding() {
-    const onboardingEl = document.getElementById('onboarding');
-    const appEl = document.getElementById('app');
-    onboardingEl.classList.add('opacity-0', 'pointer-events-none');
-    appEl.classList.remove('opacity-0');
-    setTimeout(initializeApp, 500);
-}
-
-async function requestSensorPermission() {
-    try {
-        if (typeof DeviceMotionEvent.requestPermission === 'function') {
-            const permission = await DeviceMotionEvent.requestPermission();
-            return permission === 'granted';
-        }
-        return true;
-    } catch (error) {
-        console.error('Error requesting sensor permission:', error);
-        return false;
-    }
-}
-
-function initializeApp() {
-    setupMotionListener();
-    initCharts();
-    setTimeout(checkSensorStatus, 1500);
-}
-
-function checkSensorStatus() {
-    if (state.eventCount > 0) {
-        state.sensorReady = true;
-        updateUI('ready');
-    } else {
-        updateUI('error', {
-            text: 'Sensor não detectado',
-            detail: 'Mova o dispositivo para ativá-lo.'
-        });
-    }
-}
-
-// --- UI MANAGEMENT ---
-function updateUI(status, details = {}) {
-    const statusCard = document.getElementById('statusCard');
-    const statusIconContainer = document.getElementById('statusIconContainer');
-    const spinner = document.getElementById('spinner');
-    const iconReady = document.getElementById('iconReady');
-    const statusText = document.getElementById('statusText');
-    const statusDetail = document.getElementById('statusDetail');
-    const actionBtn = document.getElementById('actionBtn');
-    const actionText = document.getElementById('actionText');
-    
-    statusCard.className = 'bg-gray-800 rounded-2xl p-6 border-t-4 transition-all duration-300';
-    statusIconContainer.classList.remove('pulse-glow-animation');
-    spinner.classList.add('hidden');
-    iconReady.classList.add('hidden');
-    actionBtn.classList.remove('bg-yellow-500', 'hover:bg-yellow-600', 'bg-green-500');
-    actionBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-
-    switch (status) {
-        case 'initializing':
-            statusText.textContent = 'Preparando sensores...';
-            statusDetail.textContent = 'Aguarde a inicialização';
-            statusCard.classList.add('border-blue-500');
-            spinner.classList.remove('hidden');
-            actionBtn.disabled = true;
-            actionText.textContent = 'Aguardando Sensores';
-            break;
-        case 'ready':
-            statusText.textContent = 'Pronto para análise';
-            statusDetail.textContent = `Taxa de amostra: ${state.sampleRate.toFixed(0)} Hz`;
-            statusCard.classList.add('border-green-500');
-            statusIconContainer.classList.add('pulse-glow-animation');
-            iconReady.classList.remove('hidden');
-            actionBtn.disabled = false;
-            actionText.textContent = 'Iniciar Coleta';
-            break;
-        case 'collecting':
-            statusText.textContent = 'Coletando dados...';
-            statusCard.classList.add('border-yellow-500');
-            spinner.classList.remove('hidden');
-            actionBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-            actionBtn.classList.add('bg-yellow-500', 'hover:bg-yellow-600');
-            actionText.textContent = 'Parar Coleta';
-            break;
-        case 'analyzing':
-            statusText.textContent = 'Analisando...';
-            statusDetail.textContent = `${state.data.length} amostras coletadas.`;
-            statusCard.classList.add('border-purple-500');
-            spinner.classList.remove('hidden');
-            actionBtn.disabled = true;
-            actionText.textContent = 'Processando...';
-            break;
-        case 'done':
-            statusText.textContent = 'Análise Concluída';
-            statusDetail.textContent = `Pico em ${state.results.peakFreq.toFixed(1)} Hz`;
-            statusCard.classList.add('border-green-500');
-            iconReady.classList.remove('hidden');
-            actionBtn.disabled = true;
-            actionText.textContent = 'Análise Completa';
-            actionBtn.classList.add('bg-green-500');
-            break;
-        case 'error':
-            statusText.textContent = details.text || 'Erro';
-            statusDetail.textContent = details.detail || 'Tente novamente.';
-            statusCard.classList.add('border-red-500');
-            actionBtn.disabled = true;
-            actionText.textContent = 'Erro no Sensor';
-            break;
-    }
-}
-
-function showInfoModal() {
-    document.getElementById('infoModal').classList.remove('hidden');
-}
-
-function hideInfoModal(event) {
-    if (event && event.target.id !== 'infoModal') return;
-    document.getElementById('infoModal').classList.add('hidden');
-}
-
-
-// --- SENSOR & DATA COLLECTION ---
-function setupMotionListener() {
-    let lastTime = performance.now();
-    
-    const handleMotion = (event) => {
-        state.eventCount++;
-        const now = performance.now();
-        const dt = (now - lastTime) / 1000;
-        if (dt > 0) {
-            const currentRate = 1 / dt;
-            state.sampleRate = state.sampleRate * 0.95 + currentRate * 0.05;
-        }
-        lastTime = now;
-
-        if (state.collecting) {
-            const acc = event.accelerationIncludingGravity;
-            if (!acc || acc.x === null) return;
-
-            const t = (now - state.startTime) / 1000;
-            const axis = document.getElementById('axis').value;
-            let value;
-            switch(axis) {
-                case 'x': value = acc.x; break;
-                case 'y': value = acc.y; break;
-                case 'z': value = acc.z; break;
-                default: value = Math.sqrt(acc.x**2 + acc.y**2 + acc.z**2);
-            }
-            state.data.push({ t, v: value });
-            updateProgress();
-        }
-    };
-
-    window.addEventListener('devicemotion', handleMotion, true);
-}
-
-function handleAction() {
-    state.collecting ? stopCollection() : startCollection();
-}
-
-function startCollection() {
-    state.data = [];
-    state.collecting = true;
-    state.startTime = performance.now();
-    
-    document.getElementById('resultsSection').classList.add('hidden');
-    document.getElementById('footerActions').classList.add('hidden');
-    
-    updateUI('collecting');
-
-    const duration = parseInt(document.getElementById('duration').value) * 1000;
-    setTimeout(() => {
-        if (state.collecting) stopCollection();
-    }, duration);
-}
-
-function stopCollection() {
-    state.collecting = false;
-    if ('vibrate' in navigator) navigator.vibrate(100);
-    
-    document.getElementById('progressBar').style.width = '0%';
-    updateUI('analyzing');
-    
-    setTimeout(analyzeData, 500);
-}
-
-function updateProgress() {
-    const duration = parseInt(document.getElementById('duration').value);
-    const elapsed = (performance.now() - state.startTime) / 1000;
-    const progress = Math.min(100, (elapsed / duration) * 100);
-    
-    document.getElementById('progressBar').style.width = `${progress}%`;
-    document.getElementById('statusDetail').textContent = `Restam ${(duration - elapsed).toFixed(0)}s | ${state.data.length} amostras`;
-}
-
-
-// --- SIGNAL PROCESSING & ANALYSIS ---
-function fft(real, imag) {
-    const n = real.length;
-    if (n === 0) return;
-    for (let i = 1, j = 0; i < n; i++) {
-        let bit = n >> 1;
-        for (; (j & bit) !== 0; bit >>= 1) j ^= bit;
-        j ^= bit;
-        if (i < j) {
-            [real[i], real[j]] = [real[j], real[i]];
-            [imag[i], imag[j]] = [imag[j], imag[i]];
-        }
-    }
-    for (let len = 2; len <= n; len <<= 1) {
-        const halfLen = len >> 1;
-        const angle = -2 * Math.PI / len;
-        const w_real = Math.cos(angle);
-        const w_imag = Math.sin(angle);
-        for (let i = 0; i < n; i += len) {
-            let t_real = 1;
-            let t_imag = 0;
-            for (let j = 0; j < halfLen; j++) {
-                const u_real = real[i + j], u_imag = imag[i + j];
-                const v_real = real[i + j + halfLen] * t_real - imag[i + j + halfLen] * t_imag;
-                const v_imag = real[i + j + halfLen] * t_imag + imag[i + j + halfLen] * t_real;
-                real[i + j] = u_real + v_real;
-                imag[i + j] = u_imag + v_imag;
-                real[i + j + halfLen] = u_real - v_real;
-                imag[i + j + halfLen] = u_imag - v_imag;
-                [t_real, t_imag] = [t_real * w_real - t_imag * w_imag, t_real * w_imag + t_imag * w_real];
-            }
-        }
-    }
-}
-
-function welch(signal, fs, nperseg) {
-    const n = signal.length;
-    nperseg = Math.min(nperseg, n);
-    const noverlap = Math.floor(nperseg / 2);
-    const step = nperseg - noverlap;
-    
-    const win = new Float64Array(nperseg);
-    for (let i = 0; i < nperseg; i++) win[i] = 0.5 * (1 - Math.cos(2 * Math.PI * i / (nperseg - 1)));
-    const scale = 1.0 / (fs * (win.reduce((a, b) => a + b*b, 0) / nperseg));
-
-    let psd = new Float64Array(Math.floor(nperseg / 2) + 1).fill(0);
-    let numSegments = 0;
-
-    for (let i = 0; i + nperseg <= n; i += step) {
-        const segment = signal.slice(i, i + nperseg);
-        let real = new Float64Array(nperseg);
-        for (let j = 0; j < nperseg; j++) real[j] = segment[j] * win[j];
-        let imag = new Float64Array(nperseg).fill(0);
-        fft(real, imag);
-        for (let j = 0; j < psd.length; j++) {
-            const specVal = real[j]**2 + imag[j]**2;
-            psd[j] += (j > 0 && j < psd.length - 1) ? 2 * specVal : specVal;
-        }
-        numSegments++;
-    }
-
-    if (numSegments > 0) psd = psd.map(v => v * scale / numSegments);
-    const freqs = new Float64Array(psd.length);
-    for (let i = 0; i < psd.length; i++) freqs[i] = i * fs / nperseg;
-    return { freqs, psd };
-}
-
-function morletWavelet(length, frequency, sampleRate) {
-    const real = new Float64Array(length);
-    const imag = new Float64Array(length);
-    const sigma = length / (2 * Math.PI * (frequency / (sampleRate / length)) * 2.5);
-    const halfLength = Math.floor(length / 2);
-
-    for (let i = 0; i < length; i++) {
-        const t = i - halfLength;
-        const gaussian = Math.exp(-(t * t) / (2 * sigma * sigma));
-        const angle = 2 * Math.PI * frequency * (t / sampleRate);
-        real[i] = Math.cos(angle) * gaussian;
-        imag[i] = Math.sin(angle) * gaussian;
-    }
-    return { real, imag };
-}
-
-function convolve(signal, waveletReal) {
-    const signalLen = signal.length;
-    const waveletLen = waveletReal.length;
-    let maxEnergy = 0;
-
-    for (let i = 0; i <= signalLen - waveletLen; i++) {
-        let energy = 0;
-        for (let j = 0; j < waveletLen; j++) {
-            energy += signal[i + j] * waveletReal[j];
-        }
-        const currentEnergy = energy * energy;
-        if (currentEnergy > maxEnergy) {
-            maxEnergy = currentEnergy;
-        }
-    }
-    return maxEnergy;
-}
-
-function calculateWaveletEnergyRatio(signal, fs, peakFreq) {
-    if (peakFreq < 2 || !fs) return 0;
-    const waveletLength = Math.min(signal.length, Math.floor(fs));
-    
-    const peakWav = morletWavelet(waveletLength, peakFreq, fs);
-    const peakEnergy = convolve(signal, peakWav.real);
-    
-    const noiseFreq = peakFreq > 10 ? 5 : 15;
-    const noiseWav = morletWavelet(waveletLength, noiseFreq, fs);
-    const noiseEnergy = convolve(signal, noiseWav.real);
-
-    return peakEnergy / (peakEnergy + noiseEnergy + 1e-9);
-}
-
-
-function analyzeData() {
-    if (state.data.length < 50) {
-        updateUI('error', { text: 'Dados Insuficientes', detail: 'Colete por mais tempo.' });
-        return;
-    }
-    const rawSignal = state.data.map(d => d.v);
-    const mean = rawSignal.reduce((a, b) => a + b, 0) / rawSignal.length;
-    const detrendedSignal = rawSignal.map(v => v - mean);
-    
-    const rms = Math.sqrt(detrendedSignal.reduce((sum, v) => sum + v * v, 0) / detrendedSignal.length);
-    
-    const jerkSignal = [];
-    const times = state.data.map(d => d.t);
-    for (let i = 1; i < detrendedSignal.length; i++) {
-        const dt = times[i] - times[i - 1];
-        if (dt > 0) {
-            jerkSignal.push(Math.abs((detrendedSignal[i] - detrendedSignal[i - 1]) / dt));
-        }
-    }
-    jerkSignal.sort((a, b) => a - b);
-    const jr50 = jerkSignal.length > 0 ? jerkSignal[Math.floor(jerkSignal.length / 2)] : 0;
-    
-    const fs = state.sampleRate;
-    const nperseg = Math.pow(2, Math.floor(Math.log2(fs * 2)));
-
-    const { freqs, psd } = welch(detrendedSignal, fs, nperseg);
-
-    let peakPower = 0, peakIdx = -1;
-    for (let i = 0; i < freqs.length; i++) {
-        if (freqs[i] >= 2 && freqs[i] <= 20) {
-            if (psd[i] > peakPower) {
-                peakPower = psd[i];
-                peakIdx = i;
-            }
-        }
-    }
-    if (peakIdx === -1) {
-         updateUI('error', { text: 'Pico não detectado', detail: 'O sinal de tremor pode ser muito fraco.' });
-        return;
-    }
-    const peakFreq = freqs[peakIdx];
-    const halfMax = peakPower / 2;
-    let leftIdx = peakIdx, rightIdx = peakIdx;
-    while (leftIdx > 0 && psd[leftIdx] > halfMax) leftIdx--;
-    while (rightIdx < freqs.length - 1 && psd[rightIdx] > halfMax) rightIdx++;
-    const fwhm = freqs[rightIdx] - freqs[leftIdx];
-
-    const totalPower = psd.reduce((a, b) => a + b, 1e-12);
-    
-    let valley1 = Infinity, valley2 = Infinity;
-    for (let i = 0; i < peakIdx; i++) if (psd[i] < valley1) valley1 = psd[i];
-    for (let i = peakIdx + 1; i < psd.length; i++) if (psd[i] < valley2) valley2 = psd[i];
-    const baseline = Math.min(valley1, valley2);
-    const peakProminence = peakPower - baseline;
-
-    const waveletIndex = calculateWaveletEnergyRatio(detrendedSignal, fs, peakFreq);
-
-    const tsi = peakFreq > 0 ? fwhm / peakFreq : 0;
-    const normalizedPsd = psd.map(p => p / totalPower);
-    const spectralEntropy = -normalizedPsd.reduce((sum, p) => sum + (p > 0 ? p * Math.log2(p) : 0), 0);
-
-    state.results = {
-        times, rawSignal, detrendedSignal, freqs, psd, peakFreq, peakPower, fwhm, tsi, 
-        spectralEntropy, sampleRate: fs, rms, jr50, totalPower, peakProminence, waveletIndex
-    };
-
-    displayResults();
-    classifyTremor();
-    updateUI('done');
-    document.getElementById('resultsSection').classList.remove('hidden');
-    document.getElementById('footerActions').classList.remove('hidden');
-}
-
-
-// --- RESULTS DISPLAY & CHARTS ---
-function displayResults() {
-    const { peakFreq, fwhm, tsi, spectralEntropy, rms, jr50, totalPower, peakProminence, waveletIndex } = state.results;
-
-    document.getElementById('metricPeakFreq').textContent = `${peakFreq.toFixed(1)} Hz`;
-    document.getElementById('metricFWHM').textContent = `${fwhm.toFixed(2)} Hz`;
-    document.getElementById('metricTSI').textContent = `${tsi.toFixed(2)}`;
-    document.getElementById('metricEntropy').textContent = `${spectralEntropy.toFixed(2)}`;
-    document.getElementById('metricRMS').textContent = `${rms.toFixed(2)}`;
-    document.getElementById('metricJR50').textContent = `${jr50.toFixed(1)}`;
-    document.getElementById('metricTotalPower').textContent = `${(totalPower * 1e3).toExponential(1)}`;
-    document.getElementById('metricProminence').textContent = `${(peakProminence * 1e3).toExponential(1)}`;
-    document.getElementById('metricWavelet').textContent = `${waveletIndex.toFixed(2)}`;
-
-    updateTimeSeriesChart();
-    updatePsdChart();
-}
-
-function classifyTremor() {
-    const { peakFreq, tsi, peakProminence, totalPower, jr50, waveletIndex } = state.results;
-    let scores = { OT: 0, ET: 0, DT: 0, MY: 0 };
-
-    const prominenceFactor = Math.min(1, peakProminence / (totalPower * 0.8 + 1e-9));
-    const stabilityFactor = Math.max(0, 1 - tsi * 2.5);
-    const jerkFactor = Math.min(1, jr50 / (state.sampleRate * 5 + 1e-9));
-    
-    if (peakFreq >= 4 && peakFreq <= 12) {
-        scores.ET = (1 - Math.abs(peakFreq - 8) / 4) * stabilityFactor * prominenceFactor * waveletIndex;
-    }
-    if (peakFreq >= 13 && peakFreq <= 18) {
-        scores.OT = (1 - Math.abs(peakFreq - 15.5) / 2.5) * Math.pow(stabilityFactor, 2) * Math.pow(prominenceFactor, 2) * waveletIndex;
-    }
-    
-    const irregularityScore = (1 - stabilityFactor) + (1 - prominenceFactor) + jerkFactor;
-    if (peakFreq >= 3 && peakFreq <= 9) {
-        scores.DT = irregularityScore * 0.3 * (1 - waveletIndex);
-    }
-    scores.MY = irregularityScore * jerkFactor * 0.5;
-    
-    const total = Object.values(scores).reduce((a, b) => a + b, 1e-9);
-    const container = document.getElementById('classificationContainer');
-    container.innerHTML = '';
-
-    const sortedScores = Object.entries(scores).sort(([,a],[,b]) => b-a);
-
-    for (const [type, score] of sortedScores) {
-        const pct = total > 0 ? (score / total) * 100 : 0;
-        if (pct < 1) continue;
-        
-        const { label, color } = CLASSIFICATION_TYPES[type];
-        const item = document.createElement('div');
-        item.innerHTML = `
-            <div class="flex justify-between items-center mb-1">
-                <span class="text-sm">${label}</span>
-                <span class="text-sm font-semibold">${pct.toFixed(0)}%</span>
+        <div class="grid-2">
+          <!-- Protocolo -->
+          <section class="card pad-0" aria-labelledby="protocolTitle">
+            <div class="list">
+              <div class="list-row"><h2 id="protocolTitle" class="t-headline" style="margin:0">Protocolo de coleta</h2><span id="sourceChip" class="chip info">Sensor</span></div>
+              <div class="list-row">
+                <label for="patientId">Identificação <div class="hint">Opcional; fica apenas neste aparelho</div></label>
+                <input id="patientId" class="input" type="text" placeholder="Iniciais / código" autocomplete="off" maxlength="40" style="max-width:180px">
+              </div>
+              <div class="list-row" style="flex-direction:column;align-items:stretch;gap:8px">
+                <span class="label">Condição de ativação <div class="hint">Define a interpretação (Eixo 1, IPMDS 2018)</div></span>
+                <div id="condition" class="segmented full" role="group" aria-label="Condição de ativação">
+                  <button type="button" data-value="rest" aria-pressed="false">Repouso</button>
+                  <button type="button" data-value="posture" aria-pressed="true">Postural</button>
+                  <button type="button" data-value="kinetic" aria-pressed="false">Cinético</button>
+                  <button type="button" data-value="orthostatic" aria-pressed="false">Em pé</button>
+                </div>
+              </div>
+              <div class="list-row">
+                <label for="segment">Segmento</label>
+                <select id="segment" class="select">
+                  <option value="hand">Mão</option><option value="forearm">Antebraço</option><option value="arm">Braço</option>
+                  <option value="leg">Perna</option><option value="foot">Pé</option><option value="head">Cabeça</option><option value="trunk">Tronco</option><option value="jaw">Mandíbula</option><option value="other">Outro</option>
+                </select>
+              </div>
+              <div class="list-row" style="flex-direction:column;align-items:stretch;gap:8px">
+                <span class="label">Lado</span>
+                <div id="side" class="segmented full" role="group" aria-label="Lado">
+                  <button type="button" data-value="right" aria-pressed="true">Direito</button>
+                  <button type="button" data-value="left" aria-pressed="false">Esquerdo</button>
+                  <button type="button" data-value="bilateral" aria-pressed="false">Bilateral</button>
+                  <button type="button" data-value="na" aria-pressed="false">N/A</button>
+                </div>
+              </div>
+              <div class="list-row" style="flex-direction:column;align-items:stretch;gap:8px">
+                <label for="duration">Duração <div class="hint">≥ 30 s recomendado (10–120 s)</div></label>
+                <div class="row between">
+                  <div id="durationPresets" class="segmented" role="group" aria-label="Duração">
+                    <button type="button" data-value="30" aria-pressed="true">30 s</button>
+                    <button type="button" data-value="60" aria-pressed="false">60 s</button>
+                    <button type="button" data-value="100" aria-pressed="false">100 s</button>
+                  </div>
+                  <input id="duration" class="input small" type="number" min="10" max="120" step="5" value="30" aria-label="Duração em segundos">
+                </div>
+              </div>
+              <div class="list-row">
+                <label for="axisMode">Eixo do sinal <div class="hint">Automático = componente principal (PCA)</div></label>
+                <select id="axisMode" class="select">
+                  <option value="auto">Automático (PCA)</option><option value="x">Eixo X</option><option value="y">Eixo Y</option><option value="z">Eixo Z</option><option value="norm">Magnitude |a|</option>
+                </select>
+              </div>
+              <div class="list-row" id="demoRow" style="flex-direction:column;align-items:stretch;gap:8px" hidden>
+                <label for="demoProfile">Perfil simulado <div class="hint">Sinal sintético, apenas para demonstração</div></label>
+                <select id="demoProfile" class="select" style="width:100%">
+                  <option value="et">Essencial (6,5 Hz, regular)</option>
+                  <option value="pd">Parkinsoniano (5 Hz, harmônicos)</option>
+                  <option value="ot">Ortostático (15,5 Hz, pernas)</option>
+                  <option value="ept">Fisiológico (10 Hz, baixa amplitude)</option>
+                  <option value="dt">Distônico (6 Hz, irregular)</option>
+                  <option value="none">Sem tremor (ruído)</option>
+                </select>
+              </div>
+              <div class="list-row">
+                <label for="notes">Observações</label>
+                <input id="notes" class="input" type="text" placeholder="Medicação, tarefa, posição do aparelho…" maxlength="160" style="max-width:240px">
+              </div>
             </div>
-            <div class="w-full bg-gray-700 rounded-full h-2.5">
-                <div class="h-2.5 rounded-full transition-all duration-1000 ease-out" style="width: ${pct}%; background-color: ${color};"></div>
-            </div>`;
-        container.appendChild(item);
-    }
-}
+          </section>
 
-function initCharts() {
-    const tickCallback = (value) => Number.isInteger(value) ? value : null;
-    const commonOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-            x: { ticks: { color: '#9CA3AF', callback: tickCallback }, grid: { color: 'rgba(255,255,255,0.1)' } },
-            y: { ticks: { color: '#9CA3AF' }, grid: { color: 'rgba(255,255,255,0.1)' } }
-        }
-    };
+          <!-- Coleta -->
+          <section class="card" aria-labelledby="collectTitle">
+            <div class="card-title"><h2 id="collectTitle" class="t-headline" style="margin:0">Sensor e coleta</h2><span id="rateChip" class="chip">— Hz</span></div>
+            <div class="status">
+              <div id="statusIcon" class="status-icon busy"><div class="spinner"></div></div>
+              <div class="grow">
+                <p id="statusText" class="t-headline">Preparando sensores…</p>
+                <p id="statusDetail" class="t-footnote t-secondary">Aguarde a inicialização</p>
+              </div>
+            </div>
+            <div id="countdown" class="countdown mt-16" hidden>3</div>
+            <canvas id="liveCanvas" class="live-canvas mt-16" aria-label="Pré-visualização do sinal"></canvas>
+            <div class="progress mt-8" aria-hidden="true"><div id="progressBar"></div></div>
+            <p class="t-caption t-secondary mt-8" id="placementHint">Fixe o aparelho firmemente no segmento (faixa, bolso justo ou mão espalmada) e mantenha a condição de ativação durante toda a coleta.</p>
+            <button id="btnAction" class="btn block mt-16" type="button" disabled>Aguardando sensores</button>
+          </section>
+        </div>
 
-    timeChart = new Chart(document.getElementById('chartTime'), {
-        type: 'line',
-        data: { labels: [], datasets: [{ data: [], borderColor: '#60A5FA', borderWidth: 1.5, pointRadius: 0, tension: 0.1 }] },
-        options: { ...commonOptions, scales: { ...commonOptions.scales, x: { ...commonOptions.scales.x, title: { display: true, text: 'Tempo (s)', color: '#9CA3AF' } } } }
-    });
-    
-    psdChart = new Chart(document.getElementById('chartPSD'), {
-        type: 'line',
-        data: { labels: [], datasets: [{ data: [], borderColor: '#34D399', borderWidth: 2, pointRadius: 0, fill: { target: 'origin', above: 'rgba(52, 211, 153, 0.2)' } }] },
-        options: { ...commonOptions, scales: { ...commonOptions.scales, x: { ...commonOptions.scales.x, title: { display: true, text: 'Frequência (Hz)', color: '#9CA3AF' }, max: 25, ticks: { ...commonOptions.scales.x.ticks, stepSize: 5 } }, y: { ...commonOptions.scales.y, title: { display: true, text: 'Potência', color: '#9CA3AF' } } } }
-    });
-}
+        <!-- Resultados -->
+        <section id="results" hidden>
+          <div class="section-title"><h2>Resultado</h2><span id="resultStamp" class="t-caption t-secondary"></span></div>
+          <div class="stack">
+            <div class="card fade-in">
+              <div class="row between wrap mb-8">
+                <div class="row wrap" id="summaryChips"></div>
+              </div>
+              <p id="summaryText" class="t-body"></p>
+              <div id="warningsBox" class="callout warn mt-8" hidden></div>
+            </div>
 
-function updateTimeSeriesChart() {
-    const { times, detrendedSignal } = state.results;
-    timeChart.data.labels = times;
-    timeChart.data.datasets[0].data = detrendedSignal;
-    timeChart.update('none');
-}
+            <div class="stats fade-in" id="stats"></div>
 
-function updatePsdChart() {
-    const { freqs, psd } = state.results;
-    psdChart.data.labels = freqs;
-    psdChart.data.datasets[0].data = psd;
-    psdChart.update('none');
-}
+            <div class="grid-2 fade-in">
+              <div class="card chart-card">
+                <h3>Sinal no tempo</h3>
+                <p class="sub">Aceleração filtrada (1–30 Hz), sinal bruto e envelope de amplitude</p>
+                <div class="chart-wrap"><canvas id="chartTime" role="img" aria-label="Sinal de aceleração no tempo"></canvas></div>
+                <div class="legend"><span><i style="background:var(--chart-primary)"></i>filtrado</span><span><i style="background:var(--chart-muted)"></i>bruto</span><span><i style="background:var(--chart-secondary)"></i>envelope</span></div>
+              </div>
+              <div class="card chart-card">
+                <h3>Densidade espectral de potência</h3>
+                <p class="sub">Método de Welch; faixas de referência do consenso IPMDS 2018</p>
+                <div class="chart-wrap"><canvas id="chartPSD" role="img" aria-label="Densidade espectral de potência"></canvas></div>
+                <div class="legend"><span><i style="background:var(--chart-primary)"></i>PSD</span><span><i style="background:var(--chart-secondary)"></i>pico e FWHM</span><span><i class="band" style="background:var(--chart-band-pd)"></i>DP 4–6</span><span><i class="band" style="background:var(--chart-band-et)"></i>fisiológico 8–12</span><span><i class="band" style="background:var(--chart-band-ot)"></i>ortostático 13–18</span></div>
+              </div>
+              <div class="card chart-card">
+                <h3>Espectrograma</h3>
+                <p class="sub">Janelas de 3 s (escala em dB); traçado do pico nas janelas com tremor</p>
+                <div class="chart-wrap"><canvas id="chartSpec" role="img" aria-label="Espectrograma"></canvas></div>
+              </div>
+              <div class="card chart-card">
+                <h3>Frequência instantânea</h3>
+                <p class="sub">Ciclo a ciclo (base do TSI) e pico por janela de 3 s</p>
+                <div class="chart-wrap"><canvas id="chartInst" role="img" aria-label="Frequência instantânea"></canvas></div>
+                <div class="legend"><span><i style="background:var(--chart-primary)"></i>ciclo a ciclo</span><span><i style="background:var(--chart-secondary)"></i>pico por janela</span></div>
+              </div>
+            </div>
 
+            <div class="card fade-in">
+              <div class="card-title"><h3 class="t-headline" style="margin:0">Interpretação (apoio, não diagnóstico)</h3><button id="btnInfo2" class="chip info" type="button">Como interpretar</button></div>
+              <div id="hypotheses" class="hyp"></div>
+              <div id="flags" class="stack mt-8"></div>
+              <div id="findings" class="mt-16"></div>
+              <div id="suggestions" class="mt-8"></div>
+              <p class="t-caption t-secondary mt-16">A classificação de tremor é clínica (IPMDS 2018). Este painel lista as evidências eletrofisiológicas a favor e contra cada hipótese com as respectivas fontes; limiares heurísticos estão descritos em docs/LITERATURA.md.</p>
+            </div>
 
-// --- UTILITIES & APP LIFECYCLE ---
-function exportRawCsv() {
-    if (!state.data || state.data.length === 0) return;
-    let csv = 'Time(s),Acceleration(m/s^2)\n';
-    state.data.forEach(row => {
-        csv += `${row.t.toFixed(6)},${row.v.toFixed(6)}\n`;
-    });
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `dados_brutos_tremor_${new Date().toISOString().slice(0,10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-}
+            <div class="card fade-in">
+              <h3 class="t-headline" style="margin:0 0 8px">Qualidade do registro e método</h3>
+              <div class="table-wrap"><table class="metrics" id="qualityTable"></table></div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
 
-function exportMetricsCsv() {
-    if (!state.results) return;
-    const { peakFreq, fwhm, tsi, spectralEntropy, sampleRate, rms, jr50, totalPower, peakProminence, waveletIndex } = state.results;
-    let csv = 'Metrica,Valor,Unidade\n';
-    csv += `Frequência de Pico,${peakFreq.toFixed(4)},Hz\n`;
-    csv += `Amplitude (RMS),${rms.toFixed(4)},m/s^2\n`;
-    csv += `Potência Total,${totalPower.toExponential(4)},\n`;
-    csv += `Proeminência do Pico,${peakProminence.toExponential(4)},\n`;
-    csv += `FWHM,${fwhm.toFixed(4)},Hz\n`;
-    csv += `Índice de Estabilidade (TSI),${tsi.toFixed(4)},\n`;
-    csv += `Entropia Espectral,${spectralEntropy.toFixed(4)},\n`;
-    csv += `Jerk (JR50),${jr50.toFixed(4)},m/s^3\n`;
-    csv += `Índice Wavelet,${waveletIndex.toFixed(4)},\n`;
-    csv += `Taxa de Amostragem,${sampleRate.toFixed(4)},Hz\n`;
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `metricas_tremor_${new Date().toISOString().slice(0,10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-}
+    <footer id="dock" class="dock" aria-label="Ações">
+      <div class="container">
+        <button id="btnReport" class="btn secondary" type="button">Relatório</button>
+        <button id="btnExport" class="btn secondary" type="button">Exportar</button>
+        <button id="btnReset" class="btn" type="button">Nova análise</button>
+      </div>
+    </footer>
+  </div>
 
-function exportPdf() {
-    if (!state.results) { alert("Nenhum resultado para exportar."); return; }
-    if (typeof jspdf === 'undefined') { alert("Erro ao carregar a biblioteca de PDF."); return; }
+  <!-- Folha: informações -->
+  <div id="sheetBackdrop" class="sheet-backdrop"></div>
+  <div id="sheetInfo" class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetInfoTitle">
+    <div class="grabber"></div>
+    <header><h2 id="sheetInfoTitle" class="t-title3">Entendendo as métricas</h2><button class="icon-btn" type="button" data-close aria-label="Fechar">✕</button></header>
+    <div class="body">
+      <p>O aplicativo converte o sinal do acelerômetro em um espectro de potência (método de Welch) e em uma série de frequência instantânea ciclo a ciclo. Cada métrica abaixo tem base na literatura citada; o documento completo está em <b>docs/LITERATURA.md</b>.</p>
+      <h4>Frequência de pico (Hz)</h4><p>Frequência dominante do tremor. Faixas do consenso IPMDS 2018: parkinsoniano 4–6 Hz (repouso; reemergente 3–5 Hz), essencial 4–12 Hz (postural/cinético), fisiológico exacerbado 8–12 Hz, ortostático 13–18 Hz (pernas em pé), cerebelar &lt; 5 Hz.</p>
+      <h4>TSI — índice de estabilidade do tremor</h4><p>Amplitude interquartil da variação ciclo a ciclo da frequência (di Biase et al., Brain 2017). TSI ≤ 1,05 favorece tremor parkinsoniano; &gt; 1,05 favorece tremor essencial, com sensibilidade e especificidade ≈ 95%, independentemente da postura e confiável a partir de 10 s.</p>
+      <h4>Irregularidade (CV da frequência) e DP entre janelas</h4><p>Variabilidade ciclo a ciclo da frequência; ~50% maior no tremor da distonia do que no tremor essencial (Shaikh 2008; Panyakaew 2020).</p>
+      <h4>Razão harmônica</h4><p>Potência nos harmônicos 2f–4f relativa ao fundamental. Elevada no tremor parkinsoniano, cuja forma de onda é assimétrica (Wile 2014; Jang 2013).</p>
+      <h4>Potência relativa do pico, razão pico/fundo e persistência</h4><p>Definem se há tremor rítmico em cada janela de 3 s (Luft 2019) e que fração do tempo o tremor está presente.</p>
+      <h4>Amplitude (RMS) e deslocamento</h4><p>Intensidade do tremor em m/s² e deslocamento estimado em mm na frequência do pico. Escalas clínicas variam com o logaritmo da amplitude (Elble 2006); compare registros só com o aparelho na mesma posição.</p>
+      <h4>FWHM, HWP e entropia espectral</h4><p>Largura e potência do pico e dispersão do espectro: pico estreito e entropia baixa indicam oscilador central estável; espectro largo sugere tremor fisiológico ou ausência de tremor.</p>
+      <h4>Jerk normalizado</h4><p>Igual a 1 para oscilação senoidal; valores muito maiores indicam forma de onda espiculada. Mioclonia só pode ser confirmada com EMG (Zutt 2018).</p>
+      <h4>Limitações</h4><p>Um único acelerômetro não substitui EMG nem as provas de carga e de entrainment; a interpretação automática é apoio e não diagnóstico.</p>
+    </div>
+  </div>
 
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('p', 'mm', 'a4');
-    const { peakFreq, fwhm, tsi, spectralEntropy, times, rawSignal, detrendedSignal, freqs, psd, rms, jr50, totalPower, peakProminence, waveletIndex } = state.results;
+  <!-- Folha: exportar -->
+  <div id="sheetExport" class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetExportTitle">
+    <div class="grabber"></div>
+    <header><h2 id="sheetExportTitle" class="t-title3">Exportar resultados</h2><button class="icon-btn" type="button" data-close aria-label="Fechar">✕</button></header>
+    <div class="body">
+      <div class="export-grid">
+        <button class="btn secondary" type="button" data-export="pdf">PDF<small>relatório completo</small></button>
+        <button class="btn secondary" type="button" data-export="html">HTML<small>relatório autônomo</small></button>
+        <button class="btn secondary" type="button" data-export="json">JSON<small>sessão completa</small></button>
+        <button class="btn secondary" type="button" data-export="csv-metrics">CSV métricas<small>tabela resumida</small></button>
+        <button class="btn secondary" type="button" data-export="csv-raw">CSV sinal bruto<small>t, ax, ay, az</small></button>
+        <button class="btn secondary" type="button" data-export="csv-psd">CSV espectro<small>frequência, PSD</small></button>
+        <button class="btn secondary" type="button" data-export="png">PNG gráficos<small>4 imagens</small></button>
+        <button class="btn secondary" type="button" data-export="share">Compartilhar<small>PDF via sistema</small></button>
+        <button class="btn secondary" type="button" data-export="print">Imprimir<small>ou salvar como PDF</small></button>
+      </div>
+      <p class="t-footnote t-secondary mt-16">Os arquivos são gerados no próprio aparelho; nada é enviado a servidores. CSV usa ponto e vírgula e vírgula decimal (compatível com Excel pt-BR, R e Python).</p>
+    </div>
+  </div>
 
-    const margin = 15;
-    const pageWidth = doc.internal.pageSize.getWidth();
-    let currentY = 20;
+  <!-- Folha: relatório -->
+  <div id="sheetReport" class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetReportTitle" style="max-height:92vh">
+    <div class="grabber"></div>
+    <header><h2 id="sheetReportTitle" class="t-title3">Relatório</h2><div class="row"><button id="btnReportPrint" class="btn small secondary" type="button">Imprimir / PDF</button><button class="icon-btn" type="button" data-close aria-label="Fechar">✕</button></div></header>
+    <div class="body" style="padding:0"><iframe id="reportFrame" title="Relatório" style="width:100%;height:70vh;border:0;background:#fff"></iframe></div>
+  </div>
 
-    doc.setFont('helvetica', 'bold').setFontSize(20).text('Relatório de Análise de Tremor - TremorPSD', pageWidth / 2, currentY, { align: 'center' });
-    currentY += 10;
-    doc.setFont('helvetica', 'normal').setFontSize(10).text(new Date().toLocaleString('pt-BR'), pageWidth / 2, currentY, { align: 'center' });
-    currentY += 15;
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-    doc.setFont('helvetica', 'bold').setFontSize(14).text('Métricas Principais', margin, currentY);
-    currentY += 8;
-    doc.setFont('helvetica', 'normal').setFontSize(11);
-    const metricsCol1 = [
-        `Freq. de Pico: ${peakFreq.toFixed(1)} Hz`,
-        `Amplitude (RMS): ${rms.toFixed(2)}`,
-        `Jerk (JR50): ${jr50.toFixed(1)}`,
-        `FWHM: ${fwhm.toFixed(2)} Hz`,
-    ];
-    const metricsCol2 = [
-        `Potência Total: ${totalPower.toExponential(1)}`,
-        `Proeminência: ${peakProminence.toExponential(1)}`,
-        `Índice Wavelet: ${waveletIndex.toFixed(2)}`,
-        `Estabilidade (TSI): ${tsi.toFixed(2)}`
-    ];
-    metricsCol1.forEach((text, i) => doc.text(text, margin, currentY + (i * 7)));
-    metricsCol2.forEach((text, i) => doc.text(text, pageWidth / 2 + 5, currentY + (i * 7)));
-    currentY += (metricsCol1.length * 7) + 5;
-
-    doc.setDrawColor(200).line(margin, currentY, pageWidth - margin, currentY);
-    currentY += 10;
-
-    const imgWidth = pageWidth - (margin * 2);
-    const imgHeight = (imgWidth * timeChart.canvas.height) / timeChart.canvas.width;
-
-    const generateChartImage = (chart, data, title) => {
-        chart.data.datasets[0].data = data;
-        chart.options.animation = false;
-        chart.update();
-        doc.setFont('helvetica', 'bold').setFontSize(12).text(title, margin, currentY);
-        currentY += 6;
-        doc.addImage(chart.toBase64Image('image/png', 1.0), 'PNG', margin, currentY, imgWidth, imgHeight);
-        currentY += imgHeight + 8;
-        if (currentY > doc.internal.pageSize.getHeight() - 30) { doc.addPage(); currentY = margin; }
-    };
-    
-    timeChart.data.labels = times;
-    generateChartImage(timeChart, rawSignal, '1. Sinal Bruto do Acelerômetro');
-    generateChartImage(timeChart, detrendedSignal, '2. Sinal Processado (Sem Componente Contínua)');
-    
-    psdChart.data.labels = freqs;
-    generateChartImage(psdChart, psd, '3. Densidade Espectral de Potência (PSD)');
-    
-    const originalMax = psdChart.options.scales.x.max;
-    psdChart.options.scales.x.min = Math.max(0, peakFreq - 3);
-    psdChart.options.scales.x.max = peakFreq + 3;
-    generateChartImage(psdChart, psd, '4. Zoom no Pico Espectral');
-    psdChart.options.scales.x.min = 0;
-    psdChart.options.scales.x.max = originalMax;
-    timeChart.options.animation = true;
-    psdChart.options.animation = true;
-    updateTimeSeriesChart();
-    updatePsdChart();
-
-    doc.addPage();
-    currentY = margin;
-    doc.setFont('helvetica', 'bold').setFontSize(14).text('Interpretação das Métricas', margin, currentY);
-    currentY += 10;
-
-    const addExplanationWithRanges = (title, what, how, ranges) => {
-        doc.setFont('helvetica', 'bold').setFontSize(10.5);
-        doc.text(title, margin, currentY);
-        currentY += 5;
-
-        doc.setFont('helvetica', 'bold').setFontSize(9);
-        doc.text('O que mede:', margin, currentY);
-        doc.setFont('helvetica', 'normal');
-        let splitText = doc.splitTextToSize(what, pageWidth - (margin * 2) - 18);
-        doc.text(splitText, margin + 18, currentY);
-        currentY += (splitText.length * 3.5) + 3;
-
-        doc.setFont('helvetica', 'bold');
-        doc.text('Como mede:', margin, currentY);
-        doc.setFont('helvetica', 'normal');
-        splitText = doc.splitTextToSize(how, pageWidth - (margin * 2) - 18);
-        doc.text(splitText, margin + 18, currentY);
-        currentY += (splitText.length * 3.5) + 3;
-
-        if (ranges) {
-            doc.setFont('helvetica', 'bold');
-            doc.text('Valores de Referência:', margin, currentY);
-            currentY += 4;
-            doc.setFont('helvetica', 'normal');
-            Object.entries(ranges).forEach(([key, value]) => {
-                const rangeText = `${key}: ${value}`;
-                splitText = doc.splitTextToSize(rangeText, pageWidth - (margin * 2) - 5);
-                doc.text('•', margin + 2, currentY + 0.5);
-                doc.text(splitText, margin + 5, currentY);
-                currentY += (splitText.length * 3.5) + 1;
-            });
-        }
-        
-        currentY += 5;
-        doc.setDrawColor(230).line(margin, currentY, pageWidth - margin, currentY);
-        currentY += 5;
-
-        if (currentY > doc.internal.pageSize.getHeight() - 20) { doc.addPage(); currentY = margin; }
-    };
-
-    addExplanationWithRanges(
-        'Frequência de Pico (Peak Frequency)',
-        'A frequência dominante do tremor, ou seja, quantas vezes por segundo (em Hertz) o movimento oscilatório ocorre. É o principal indicador para a classificação do tremor.',
-        'Identifica a frequência que corresponde ao ponto de maior potência no gráfico de Densidade Espectral de Potência (PSD).',
-        {
-            'Tremor Essencial': '4-12 Hz',
-            'Tremor Parkinsoniano': '4-7 Hz',
-            'Tremor Distônico': '4-10 Hz (geralmente irregular)',
-            'Tremor Ortostático': '13-18 Hz'
-        }
-    );
-
-    addExplanationWithRanges(
-        'Amplitude (RMS - Root Mean Square)',
-        'A intensidade e amplitude efetiva do tremor no domínio do tempo. Um valor maior indica um tremor fisicamente maior.',
-        'É calculado como a raiz quadrada da média dos valores do sinal de aceleração ao quadrado (sqrt(mean(signal^2))). Correlaciona-se bem com as escalas clínicas de avaliação de tremor.',
-        {
-            'Interpretação': 'Não há um range fixo, pois depende da gravidade. Valores maiores indicam tremor mais severo. A relação com a percepção clínica é logarítmica.'
-        }
-    );
-
-    addExplanationWithRanges(
-        'FWHM e Estabilidade (TSI)',
-        'A regularidade e ritmicidade do tremor. FWHM (Largura à Meia Altura) é a largura do pico espectral. TSI (Índice de Estabilidade) é uma medida normalizada (FWHM / Freq. Pico).',
-        'FWHM é a largura do pico de frequência quando sua potência é 50% da máxima. Um pico estreito (baixo FWHM) indica um tremor rítmico.',
-        {
-            'Tremor Essencial (FWHM)': '< 2.5 Hz (pico estreito)',
-            'Tremor Parkinsoniano (FWHM)': '2.5 - 3.5 Hz (pico estreito)',
-            'Tremor Distônico (FWHM)': '> 3.0 Hz (pico largo)',
-            'TSI': 'Valores < 0.25 geralmente indicam um tremor muito estável.'
-        }
-    );
-     addExplanationWithRanges(
-        'Jerk (JR50)',
-        'A "brusquidão" ou suavidade do movimento. O Jerk é a taxa de variação da aceleração.',
-        'É a mediana (percentil 50) dos valores absolutos do jerk ao longo do tempo. É calculado como a derivada da aceleração.',
-        {
-            'Tremor Rítmico (Essencial)': 'Jerk baixo',
-            'Movimentos Irregulares (Mioclonia)': 'Jerk elevado'
-        }
-    );
-    
-    doc.addPage();
-    currentY = margin;
-
-    addExplanationWithRanges(
-        'Potência Total e Proeminência do Pico',
-        'Potência Total representa a energia total do movimento na faixa de frequência do tremor. Proeminência mede o quão "limpo" e distinto é o pico principal do tremor em relação a outros movimentos ou ruídos de fundo.',
-        'A Potência Total é a área sob a curva do gráfico de PSD. A Proeminência é a "altura" do pico em relação ao "vale" mais próximo no espectro.',
-        {
-            'Tremores Rítmicos (Essencial, Parkinsoniano)': 'Proeminência alta',
-            'Tremores Irregulares (Distônico)': 'Proeminência baixa'
-        }
-    );
-
-    addExplanationWithRanges(
-        'Entropia Espectral e Índice Wavelet',
-        'Entropia mede a complexidade ou "desordem" do sinal. O Índice Wavelet avalia a consistência do tremor ao longo do tempo.',
-        'A Entropia de Shannon é aplicada ao espectro de potência normalizado. O Índice Wavelet compara a energia do sinal em uma wavelet ajustada para a frequência do tremor versus uma wavelet de ruído.',
-        {
-            'Sinal Puro e Rítmico': 'Baixa Entropia e Índice Wavelet próximo de 1.0',
-            'Sinal Irregular ou Intermitente': 'Alta Entropia e Índice Wavelet mais baixo.'
-        }
-    );
-    
-    const disclaimerText = "Atenção: Este relatório é gerado automaticamente e não substitui um diagnóstico médico. Os resultados devem ser interpretados por um profissional de saúde qualificado.";
-    const splitDisclaimer = doc.splitTextToSize(disclaimerText, pageWidth - (margin * 2));
-    doc.setFont('helvetica', 'italic').setFontSize(8).text(splitDisclaimer, margin, doc.internal.pageSize.getHeight() - 20);
-
-    doc.save(`Relatorio-TremorPSD-${new Date().toISOString().slice(0,10)}.pdf`);
-}
-
-function resetApp() {
-    state.data = [];
-    state.results = null;
-    state.collecting = false;
-    
-    document.getElementById('resultsSection').classList.add('hidden');
-    document.getElementById('footerActions').classList.add('hidden');
-    
-    timeChart.data.labels = [];
-    timeChart.data.datasets[0].data = [];
-    timeChart.update('none');
-    psdChart.data.labels = [];
-    psdChart.data.datasets[0].data = [];
-    psdChart.update('none');
-    
-    updateUI('ready');
-    if ('vibrate' in navigator) navigator.vibrate(50);
-}
-
-</script>
-
+  <script src="vendor/chart.umd.js"></script>
+  <script src="vendor/jspdf.umd.min.js"></script>
+  <script src="js/dsp.js"></script>
+  <script src="js/interpret.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/report.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>

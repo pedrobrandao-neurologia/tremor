@@ -1,156 +1,94 @@
-```markdown
-# TremorPSD – Análise Aprimorada
+# TremorPSD 2.0 — análise quantitativa de tremor no navegador
 
-Uma aplicação web moderna e responsiva para análise quantitativa de **tremores fisiológicos e patológicos**, baseada na **Densidade Espectral de Potência (Power Spectral Density – PSD)**.  
-Utiliza os sensores inerciais (acelerômetro) do dispositivo móvel para capturar dados de movimento e aplicar análise espectral em tempo real.
+Aplicativo web progressivo (PWA) para **análise quantitativa de tremor** com o acelerômetro de smartphones e tablets. Estima o espectro de potência (método de Welch), o **índice de estabilidade do tremor (TSI)**, a irregularidade ciclo a ciclo, o conteúdo harmônico, a amplitude e a persistência do tremor, e gera um **relatório detalhado** com faixas de referência e citações da literatura. Funciona **offline**, sem enviar dados a servidores.
 
----
+> Instrumento de apoio à avaliação clínica e à pesquisa. **Não é um dispositivo diagnóstico.** A classificação de tremor é clínica (IPMDS 2018); o app lista evidências eletrofisiológicas a favor e contra cada hipótese, com as fontes.
 
-## 🧠 Sobre o Projeto
+## Novidades da versão 2.0
 
-O **TremorPSD** foi desenvolvido para fins de **pesquisa e avaliação clínica digital**, permitindo identificar padrões de tremor associados a diferentes condições neurológicas, como:
+- **Revisão completa da literatura** de cada cálculo, com 37 referências verificadas no PubMed, e **auditoria de 15 bugs** da versão anterior — ver [`docs/LITERATURA.md`](docs/LITERATURA.md).
+- **TSI correto** (di Biase et al., Brain 2017): PCA do eixo dominante, passa-banda em torno do pico, cruzamentos de zero e amplitude interquartil de Δf, com o ponto de corte de 1,05.
+- **Resolução espectral adequada** (segmentos de 4 s, zero-padding, interpolação parabólica do pico e interpolação da FWHM).
+- Novas métricas com base na literatura: irregularidade (CV da frequência instantânea), razão harmônica, potência relativa do pico, persistência, entropia normalizada, envelope de Hilbert, jerk normalizado, deslocamento estimado.
+- **Protocolo de coleta** (condição de ativação, segmento, lado, duração, eixo) usado na interpretação por regras explícitas.
+- **Gráficos** interativos: sinal no tempo, PSD com faixas de referência, espectrograma e frequência instantânea.
+- **Relatório detalhado** e exportação em **PDF, HTML, JSON, CSV (métricas, sinal bruto, espectro), PNG**, impressão e compartilhamento nativo.
+- **Design system** inspirado nas Human Interface Guidelines da Apple, com temas **claro, escuro e automático**.
+- **PWA completo**: ícones, manifest, service worker com pré-cache e bibliotecas vendorizadas (funciona sem rede).
+- **Modo demonstração** com sinais sintéticos rotulados (nunca confundidos com registros reais).
 
-- Tremor essencial (ET)  
-- Tremor ortostático (OT)  
-- Tremor distônico (DT)  
-- Mioclonias (MY)
+## Como usar
 
-O aplicativo realiza aquisição direta de dados de aceleração, aplica **análise espectral via método de Welch** e exibe as métricas principais relacionadas ao padrão de tremor — frequência de pico, largura espectral (FWHM), entropia, e razão pico/total.
+1. Publique a pasta em um servidor **HTTPS** (GitHub Pages funciona) e abra no smartphone.
+2. Toque em **Começar** e conceda a permissão de movimento (no iOS o pedido aparece na tela; se negado: Ajustes › Safari › Movimento e orientação).
+3. Preencha o **protocolo**: condição de ativação (repouso, postural, cinético, em pé), segmento, lado e duração (≥ 30 s recomendado).
+4. Fixe o aparelho firmemente no segmento (dorso da mão com faixa, bolso justo na perna para tremor ortostático) e toque em **Iniciar coleta**. Há contagem regressiva de 3 s e o primeiro segundo é descartado.
+5. Revise as métricas, os gráficos e a interpretação; gere o **Relatório** ou **Exporte** nos formatos desejados.
+6. Para instalar como app: banner "Instalar" (Android/desktop) ou Compartilhar › Adicionar à Tela de Início (iOS).
 
----
+Sem acelerômetro (desktop), use o **modo demonstração** para conhecer a interface.
 
-## ⚙️ Tecnologias Utilizadas
+## Métricas (resumo)
 
-- **HTML5** – Estrutura base e compatibilidade móvel  
-- **Tailwind CSS (via CDN)** – Estilo responsivo e moderno  
-- **Chart.js (via CDN)** – Visualização dos sinais e espectros  
-- **JavaScript puro (ES6)** – Processamento de sinais e controle da interface  
-- **DeviceMotion API** – Coleta de dados dos sensores de movimento
+| Métrica | O que mede | Referência principal |
+|---|---|---|
+| Frequência de pico | Frequência dominante (Welch, 2–25 Hz) | Bhatia 2018; Vial 2019 |
+| TSI | IQR da variação ciclo a ciclo da frequência; ≤ 1,05 DP, > 1,05 TE | di Biase 2017 |
+| CV da frequência / DP entre janelas | Irregularidade (maior no tremor distônico) | Shaikh 2008; Panyakaew 2020 |
+| Razão harmônica | Forma de onda assimétrica (alta na DP) | Wile 2014; Jang 2013 |
+| Potência relativa, SNR, persistência | Detecção de tremor por janela e intermitência | Luft 2019; Elble & McNames 2016 |
+| RMS, log₁₀ RMS, deslocamento | Amplitude (escalas clínicas ~ log da amplitude) | Elble 2006; van Brummelen 2020 |
+| FWHM / HWP | Largura e potência do pico | Rajan 2023; Purrer 2025 |
+| Entropia espectral | Dispersão do espectro (tom puro vs ruído) | Hossen 2020 |
+| Jerk normalizado | Forma de onda espiculada (adimensional) | Hogan & Sternad 2009 |
 
----
+Faixas de frequência usadas na interpretação: parkinsoniano 4–6 Hz (repouso), essencial 4–12 Hz (postural/cinético), fisiológico exacerbado 8–12 Hz, ortostático 13–18 Hz (pernas em pé), cerebelar < 5 Hz.
 
-## 📊 Funcionalidades Principais
-
-### 🔹 Coleta de Dados
-- Captura contínua do acelerômetro do dispositivo (x, y, z ou magnitude)
-- Ajuste da duração da coleta (5–60 segundos)
-- Cálculo automático da taxa de amostragem
-
-### 🔹 Análise Espectral
-- Transformada Rápida de Fourier (FFT) com janelamento de Welch  
-- Extração de métricas quantitativas:
-  - **Frequência de Pico (Hz)** – frequência dominante do tremor  
-  - **FWHM (Hz)** – largura do pico, indicativo de regularidade  
-  - **PTR (Pico/Total Ratio)** – pureza espectral  
-  - **TSI (Tremor Stability Index)** – estabilidade relativa do tremor  
-  - **Centroide Espectral (Hz)** – “centro de massa” da energia espectral  
-  - **Entropia Espectral** – grau de desordem ou complexidade
-
-### 🔹 Visualização Interativa
-- Gráficos em tempo real:
-  - **Sinal temporal**
-  - **Densidade Espectral de Potência (PSD)**
-- Interface escura otimizada para dispositivos móveis
-
-### 🔹 Classificação Automática (Heurística)
-Sugestão automática de categoria de tremor baseada em:
-- Faixa de frequência
-- Estabilidade (TSI)
-- Pureza espectral (PTR)
-
-Categorias sugeridas:
-- Ortostático  
-- Essencial  
-- Distônico  
-- Mioclônico  
-
-> ⚠️ **Nota:** A classificação é apenas indicativa e não substitui avaliação médica especializada.
-
-### 🔹 Exportação de Dados
-- Exportação em **CSV** para posterior análise estatística
-- Compatível com softwares como MATLAB, Python (NumPy/Pandas) ou R
-
----
-
-## 🚀 Como Utilizar
-
-1. Hospede o arquivo `index.html` em um ambiente **HTTPS** (ou `localhost`).  
-   > A API de sensores não funciona em conexões HTTP por motivos de segurança.
-
-2. Abra a página em um **smartphone ou tablet** com acelerômetro.
-
-3. Na tela inicial:
-   - Clique em **“Começar Análise”**
-   - Conceda permissão para uso dos sensores
-
-4. Ajuste os parâmetros de coleta (duração e eixo) e pressione **“Iniciar Coleta”**
-
-5. Aguarde o término da aquisição e visualize:
-   - Gráficos de sinal e espectro
-   - Métricas quantitativas
-   - Classificação sugerida
-
-6. Exporte os resultados para CSV, se desejar.
-
----
-
-## 🧩 Estrutura do Projeto
+## Estrutura do projeto
 
 ```
-
-tremorpsd/
-├── index.html        # Aplicativo completo (HTML, CSS, JS)
-├── README.md         # Documentação do projeto
-└── assets/           # (opcional) Ícones, logos, etc.
-
+index.html              interface
+css/app.css             design system (tokens claro/escuro, materiais, componentes)
+js/dsp.js               processamento de sinais (puro; testado em Node)
+js/interpret.js         interpretação por regras com evidências e referências
+js/charts.js            gráficos (Chart.js) e espectrograma
+js/report.js            relatório HTML/PDF e exportações CSV/JSON/PNG
+js/app.js               fluxo do aplicativo, sensores, tema, PWA
+vendor/                 Chart.js 4.4.4 e jsPDF 2.5.2 (MIT), vendorizados para uso offline
+icons/                  ícones do PWA
+manifest.webmanifest    manifesto do PWA
+sw.js                   service worker (pré-cache)
+docs/LITERATURA.md      revisão da literatura e auditoria dos cálculos
+tests/dsp.test.js       testes unitários com sinais sintéticos (node --test)
+tests/e2e.mjs           teste ponta a ponta com Playwright (demo, sensor sintético, exportações, offline)
 ```
 
----
+## Testes
 
-## 🧪 Princípios de Análise
-
-A aplicação emprega o **método de Welch** para estimar a PSD, garantindo maior robustez na presença de ruído fisiológico.  
-A FFT implementada segue o algoritmo **Cooley–Tukey**, com janelamento de Hann e sobreposição de 50%.
-
----
-
-## 📱 Compatibilidade
-
-- Android (Chrome, Edge, Samsung Internet)  
-- iOS (Safari com permissão manual de sensores)  
-- Desktop (modo de simulação apenas)
-
-> Para dispositivos iOS, é necessário ativar:  
-> `Configurações → Safari → Movimento e orientação → Permitir acesso`.
-
----
-
-## 🧑‍🔬 Aplicações Potenciais
-
-- Estudos de caracterização de tremor em **Doença de Parkinson**, **Tremor Essencial** e **Distonias**  
-- Ferramenta complementar em avaliações de **telemedicina**  
-- Aquisição rápida de dados inerciais para **pesquisa clínica e biomédica**
-
----
-
-## 📘 Licença
-
-Este projeto é distribuído sob a licença **MIT**.  
-Sinta-se à vontade para utilizar, modificar e distribuir, desde que mantidos os créditos ao autor original.
-
----
-
-## ✍️ Autor
-
-**Pedro Renato de Paula Brandão, MD, PhD**  
-Neurologista – Doenças do Movimento  
-Hospital Sírio-Libanês | Universidade de Brasília | NA Neurologistas Associados  
-📧 [Contato profissional](mailto:pedrobrandao.neurologia@gmail.com)
-
----
-
-## 🌐 Demonstração (em breve)
-
-> O aplicativo poderá ser hospedado diretamente via **GitHub Pages**.  
-> Basta enviar o arquivo `index.html` e ativar o Pages no repositório.
+```bash
+node --test tests/dsp.test.js                          # 11 testes de DSP
+NODE_PATH=/caminho/para/node_modules node tests/e2e.mjs  # requer playwright + http-server
 ```
+
+## Formato dos dados exportados
+
+- **CSV** (ponto e vírgula, vírgula decimal): `*_metricas.csv`, `*_sinal.csv` (t, ax, ay, az, sinal analisado), `*_espectro.csv` (frequência, PSD).
+- **JSON**: sessão completa (protocolo, métricas, espectro, janelas, frequência instantânea, amostras brutas, interpretação) — pronto para R/Python.
+- **PDF / HTML**: relatório com síntese, hipóteses e evidências, tabela de métricas com referências, gráficos, qualidade do registro, glossário e bibliografia.
+
+Exemplo em R:
+
+```r
+m <- read.csv2("TremorPSD_..._metricas.csv")
+s <- read.csv2("TremorPSD_..._sinal.csv")
+j <- jsonlite::fromJSON("TremorPSD_....json")
+j$metrics$tsi
+```
+
+## Privacidade
+
+Todo o processamento ocorre no aparelho. A identificação digitada é usada apenas para nomear os arquivos exportados e não é armazenada.
+
+## Licença e autoria
+
+MIT. **Pedro Renato de Paula Brandão, MD, PhD** — Neurologista (Doenças do Movimento), Hospital Sírio-Libanês | Universidade de Brasília | NA Neurologistas Associados. Versão 2.0 desenvolvida com apoio de IA (Claude Code), com revisão bibliográfica documentada em `docs/LITERATURA.md`.
